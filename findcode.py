@@ -311,6 +311,9 @@ def find(myDir,filename, do_display = False, hacked = False, verbose = False):
 
     if verbose:
         print orientation
+    import IPython
+    IPython.Shell.IPShellEmbed()
+
 
     if hacked:
         cvSaveImage(myDir+"r"+filename,rotated2)
