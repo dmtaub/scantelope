@@ -15,23 +15,51 @@ white = CV_RGB(255,255,255)
 black = CV_RGB(0,0,0)
 gray = CV_RGB(126,126,126)
 
-def showIm(list_of_images,list_of_names=[]):
-    offset = 0
-    for i in range(len(list_of_images)):
-        im = list_of_images[i]
-        if i >= len(list_of_names): 
-            name = "Win"+str(i)
-        else:
-            name = list_of_names[i]
-        width = im.width
-        step = width +2
-        cvNamedWindow( name, 1 );
-        cvShowImage( name, im );
-        cvMoveWindow( name, offset,0);
-        offset+=step;
+class ToDisplay:
+    """ class to store and display 8bit 1 channel images """
+    imgs = {}
+    names = []
+    def __init__(self):
+        pass
+    
+    @classmethod
+    def clear(cls):
+        cls.names = []
+        cls.imgs = {} #free mem?
 
-    cvWaitKey(0);
+    @classmethod
+    def add(cls,name,img,apply_to_copy = None):
+        cls.names.append(name)
+        copy_img = cvCreateImage( cvGetSize(img), img.depth, 1 );
+        cvCopy(img,copy_img)
+        if apply_to_copy != None:
+            copy_img = apply_to_copy(copy_img)
+        cls.imgs[name] = copy_img
+        return copy_img
 
+    @classmethod
+    def showIm(cls):
+        offset = 0
+
+#        for name,im in cls.imgs.iteritems():
+        for name in cls.names:  #preserve order of dict in python 2.6
+                im = cls.imgs[name]
+                width = im.width
+                step = width +2
+                cvPutText(im , name, cvPoint(0,im.height-5), 
+                        cvFont(1), white) 
+                cvNamedWindow( name, 1 )
+                cvShowImage( name, im )
+                cvMoveWindow( name, offset,0)
+                offset+=step
+
+        key = cvWaitKey(1000)
+        if key == ' ':  #pause on spacebar
+            key = cvWaitKey(0)
+        if key == '\n':
+            sys.exit(0)
+
+       
 def getAngle(dft_img, do_display = False,verbose = False):
         # create 8-bit image from DFT output
         scale_dst = cvCreateImage( cvGetSize(dft_img), 8, 1 );
@@ -73,7 +101,8 @@ def getAngle(dft_img, do_display = False,verbose = False):
             h=sqrt(myMax.x**2+myMax.y**2)
             myX = int(cos(theta)*h);
             myY = int(sin(theta)*h);        
-            cvCircle( dft_img, myMax, 4, gray, 1, 8, 0);
+            newimg=ToDisplay.add("DFT",dft_img)
+            cvCircle( newimg, myMax, 4, gray, 1, 8, 0);
 
         return degrees(theta)
 
@@ -171,6 +200,58 @@ def getTopLeft(rotated, verbose=False):
     # to detect corner of L shape
     return row,col,row_p,col_p
 
+def dumbClip(rotated,verbose,do_display,center,size,off):
+
+        #cvThreshold(rotated,rotated,50,255,CV_THRESH_BINARY)
+    x,y,xpair,ypair = getTopLeft(rotated,verbose)
+
+    # this is a pretty dumb way to find the corner. 
+    # doesnt work for (e.g twistlow34)
+    maxx=max(x,max(xpair))
+    maxy=max(y,max(ypair))
+#    print y,ypair
+#    print "center=",center
+    
+    if verbose:
+        print "size,offset=",(size,off)
+        #print "center=",center
+        #print "x,y   =",(maxx,maxy)
+    #size = maxcirc
+
+
+    topleft = [maxx,maxy]
+    if maxx < center[0]:
+        if maxy > center[1]:
+            orientation = "bottom left"
+            angle = 0
+            topleft[1]-=size
+        else:
+            orientation = "top left"
+            angle = 90
+            topleft[1]-=off
+            topleft[0]-=off
+    else: 
+        if maxy > center[1]:
+            orientation = "bottom right"
+            angle = -90
+            topleft[1]-=(size-off)
+            topleft[0]-=(size-off)
+        else:
+            orientation = "top right"
+            angle = 180
+            topleft[0]-=(size-off)
+            topleft[1]-=off
+    #print orientation
+
+    if do_display:
+        newimg = ToDisplay.add("cleaned",rotated)
+
+        cvCircle( newimg, cvPoint(maxx,maxy), 3, gray, 1 ,8, 0)
+        cvCircle( newimg, cvPoint(*topleft), 3, white, 1 ,8, 0)
+
+    return angle,cvRect(topleft[0],topleft[1],size,size)
+#    new_center = squareCut(rotated,circ_center,size)
+
 def eqlz(src):
     if src.depth == 8:
         cvEqualizeHist(src,src)
@@ -178,11 +259,16 @@ def eqlz(src):
 def smoo(src,n=3):
     cvSmooth(src,src,CV_GAUSSIAN,n,n)
     return src
+def thrsh(src,v=22):
+    cvThreshold(src,src,v,255,CV_THRESH_BINARY)
+    return src
 
-    
 def find(dir,filename, do_display = False, hacked = False, verbose = False):
     
     src=cvLoadImage(dir+filename, 0);
+    if do_display:
+        ToDisplay.clear()
+        ToDisplay.add("input",src)
 
     if verbose:
         print "Opening image %s" % filename
@@ -197,97 +283,49 @@ def find(dir,filename, do_display = False, hacked = False, verbose = False):
     maxcirc = (src.height + 1) /2 +2
     mincirc = int((src.height + 1) / e)
 
-    tube_center = findCenterCircles(src,mincirc,maxcirc,verbose)
-    light_center = findCenterMoment(src,verbose)
+    #tube_center = findCenterCircles(src,mincirc,maxcirc,verbose)
+    tube_center = findCenterMoment(src,verbose)
 
     radius = mincirc + 1
     half_thick = src.height / 4
     
     circle_masked = maskOutFromCenter(src,tube_center,radius,half_thick)
     #mom_masked = maskOutFromCenter(src,light_center,radius,half_thick)
-
+#    if do_display:
+#        ToDisplay.add("circ",circle_masked)
+    
     rotated = rotateImage(circle_masked,theta,tube_center)
+
     rotated_src = rotateImage(src,theta,tube_center)
-
-#    topleft = getTopLeft(rotated)
-    #cvThreshold(rotated,rotated,50,255,CV_THRESH_BINARY)
-    x,y,xpair,ypair = getTopLeft(rotated,verbose)
-
-    # this is a pretty dumb way to find the corner. 
-    # doesnt work for (e.g twistlow34)
-    maxx=max(x,max(xpair))
-    maxy=max(y,max(ypair))
 
     size = int(src.height / (e-1)) # worked with 37 and 2 / 39x4
     off = size/19
 
-    if verbose:
-        print "size,offset=",(size,off)
-    #size = maxcirc
-
-
-    topleft = [maxx,maxy]
-    if maxx < tube_center[0]:
-        if maxy > tube_center[1]:
-            orientation = "bottom left"
-            angle = 0
-            topleft[1]-=size
-        else:
-            orientation = "top left"
-            angle = 90
-            topleft[1]-=off
-            topleft[0]-=off
-    else: 
-        if maxy > tube_center[1]:
-            orientation = "bottom right"
-            angle = -90
-            topleft[1]-=(size-off)
-            topleft[0]-=(size-off)
-        else:
-            orientation = "top right"
-            angle = 180
-            topleft[0]-=(size-off)
-            topleft[1]-=off
-
-    if do_display:
-        cvCircle( rotated, cvPoint(maxx,maxy), 3, gray, 1 ,8, 0)
-        cvCircle( rotated, cvPoint(*topleft), 3, white, 1 ,8, 0)
-
-#    new_center = squareCut(rotated,circ_center,size)
-
-
-    code_region = cvRect(topleft[0],topleft[1],size,size)
-
+    angle, code_region = dumbClip(thrsh(rotated,16),verbose,do_display,tube_center,size,off)
     rotated2 = cvGetSubRect(rotated_src,code_region)
     new_center = (rotated2.width/2,rotated2.height/2)
     rotated2 = rotateImage(rotated2,angle,new_center)
 
+    if do_display:
+        newimg = ToDisplay.add("final",rotated2)
+
     if verbose:
         print orientation
 
-#    code_region = cvRect(topleft[0],topleft[1],size,size)
-#    rotated = cvGetSubRect(rotated,code_region)
-
-
-    imgs=[src,circle_masked,dst,rotated,rotated2]
-    names=["input","circ","DFT","output","2ndRot"]
-    
-    #map(eq,imgs)
-
-    to_display = (imgs,names)
-
     if hacked:
-        #eqlz(rotated2)
         cvSaveImage(dir+"r"+filename,rotated2)
         cvSmooth(rotated2,rotated2, CV_GAUSSIAN, 3, 3)
         cvSaveImage(dir+"rs"+filename,rotated2)
+#        eqlz(rotated2)
+#        cvSaveImage(dir+"q"+filename,rotated2)
+
 #        cvSaveImage(dir+"t"+filename,masked_r)
 #        cvSaveImage(dir+"u"+filename,rotated)
 #        cvSmooth(rotated,rotated, CV_GAUSSIAN, 3, 3)
 #        cvSaveImage(dir+"us"+filename,rotated)
 
     if do_display:
-        showIm(*to_display)
+        ToDisplay.showIm()
     return rotated
 
 

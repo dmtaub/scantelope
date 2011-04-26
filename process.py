@@ -14,6 +14,7 @@ if __name__ == '__main__':
   hacked = True
   verbose = False
   totalTime = time.time()
+  failed = []
   files = None
   if len(sys.argv) > 1:
     do_display = bool(int(sys.argv[1]))
@@ -74,6 +75,14 @@ if __name__ == '__main__':
           if is_found:
             how = "rotated, cut out, and smoothed"
 
+        if 0:#not is_found:
+          os.system('convert %s -bordercolor black -border 50%% %s'%(dir+"q"+filename,dir+"q"+filename))
+          i=subprocess.Popen(['dmtxread']+s+['%s'%(dir+"q"+filename)],stdout=buf)
+          out, err = i.communicate()
+          is_found = len(out) > 2
+          if is_found:
+            how = "histEq: rotated, cut out, and smoothed"
+
         if not is_found:
           os.system('convert %s -bordercolor black -border 50%% %s'%(dir+"r"+filename,dir+"r"+filename))
           i=subprocess.Popen(['dmtxread']+s+['%s'%(dir+"r"+filename)],stdout=buf)
@@ -121,6 +130,7 @@ if __name__ == '__main__':
         print filename, out, how
       else:
         print filename, None
+        failed.append(filename)
       m+=1
 
         
@@ -128,3 +138,6 @@ if __name__ == '__main__':
   print "\nFound %d of %d in "%(n,m),time.time()-totalTime," seconds.",
   print "(OpenCV:",timeForCV," sec)\n"
   
+ #if verbose:
+  dirr = ' '+dir
+  print dirr+dirr.join(failed)
