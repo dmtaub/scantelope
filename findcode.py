@@ -263,9 +263,9 @@ def thrsh(src,v=22):
     cvThreshold(src,src,v,255,CV_THRESH_BINARY)
     return src
 
-def find(dir,filename, do_display = False, hacked = False, verbose = False):
+def find(myDir,filename, do_display = False, hacked = False, verbose = False):
     
-    src=cvLoadImage(dir+filename, 0);
+    src=cvLoadImage(myDir+filename, 0);
     if do_display:
         ToDisplay.clear()
         ToDisplay.add("input",src)
@@ -273,7 +273,7 @@ def find(dir,filename, do_display = False, hacked = False, verbose = False):
     if verbose:
         print "Opening image %s" % filename
     if not src:
-        print "Error opening image %s" % dir+filename
+        print "Error opening image %s" % myDir+filename
         sys.exit(-1)
 
     dst = getDFT(src)
@@ -313,16 +313,16 @@ def find(dir,filename, do_display = False, hacked = False, verbose = False):
         print orientation
 
     if hacked:
-        cvSaveImage(dir+"r"+filename,rotated2)
+        cvSaveImage(myDir+"r"+filename,rotated2)
         cvSmooth(rotated2,rotated2, CV_GAUSSIAN, 3, 3)
-        cvSaveImage(dir+"rs"+filename,rotated2)
+        cvSaveImage(myDir+"rs"+filename,rotated2)
 #        eqlz(rotated2)
-#        cvSaveImage(dir+"q"+filename,rotated2)
+#        cvSaveImage(myDir+"q"+filename,rotated2)
 
-#        cvSaveImage(dir+"t"+filename,masked_r)
-#        cvSaveImage(dir+"u"+filename,rotated)
+#        cvSaveImage(myDir+"t"+filename,masked_r)
+#        cvSaveImage(myDir+"u"+filename,rotated)
 #        cvSmooth(rotated,rotated, CV_GAUSSIAN, 3, 3)
-#        cvSaveImage(dir+"us"+filename,rotated)
+#        cvSaveImage(myDir+"us"+filename,rotated)
 
     if do_display:
         ToDisplay.showIm()
@@ -334,8 +334,8 @@ if __name__ == "__main__":
     if len(sys.argv)>1:
         for f in sys.argv[1:]:
             if f.find('/') != -1:
-                dir,fn = os.path.split(f)
-                output = find(dir+"/",fn, do_display = True)
+                myDir,fn = os.path.split(f)
+                output = find(myDir+"/",fn, do_display = True)
             else:
                 output = find("/tmp/",f, do_display = True)   
     else:

@@ -5,7 +5,7 @@ from pydmtx import DataMatrix
 from pdb import set_trace as st
 import findcode
 import time
-dir='/tmp/'
+myDir='/tmp/'
 pref='split'
 ext='.png'
 
@@ -24,14 +24,14 @@ if __name__ == '__main__':
         splt = sys.argv[2].split('.') 
         pref = splt[0]
         if pref.find('/') != -1:
-          dir,pref = os.path.split(pref)
+          myDir,pref = os.path.split(pref)
         ext = '.'+splt[1]
       else:
         files = sys.argv[2:]
         
-  dir += '/'
+  myDir += '/'
   if files == None:
-      files = [i for i in os.listdir(dir) if i.find(pref) != -1 and ''.join(i.split(pref)).rstrip(ext).isdigit()]
+      files = [i for i in os.listdir(myDir) if i.find(pref) != -1 and ''.join(i.split(pref)).rstrip(ext).isdigit()]
       files.sort()
       
   n=0
@@ -45,8 +45,8 @@ if __name__ == '__main__':
       is_found = False    
         
       if filename.find('/') != -1:
-        dir,filename = os.path.split(filename)
-        dir += '/'
+        myDir,filename = os.path.split(filename)
+        myDir += '/'
 
       if hacked:
         is_found = False    
@@ -63,29 +63,29 @@ if __name__ == '__main__':
 
 
       lastCVTime = time.time()
-      findcode.find(dir,filename,do_display, hacked,verbose)#[3] > 0:
+      findcode.find(myDir,filename,do_display, hacked,verbose)#[3] > 0:
       timeForCV += (time.time() - lastCVTime)
         
       if hacked:
         if not is_found:
-          os.system('convert %s -bordercolor black -border 50%% %s'%(dir+"rs"+filename,dir+"rs"+filename))
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(dir+"rs"+filename)],stdout=buf)
+          os.system('convert %s -bordercolor black -border 50%% %s'%(myDir+"rs"+filename,myDir+"rs"+filename))
+          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"rs"+filename)],stdout=buf)
           out, err = i.communicate()
           is_found = len(out) > 2
           if is_found:
             how = "rotated, cut out, and smoothed"
 
         if 0:#not is_found:
-          os.system('convert %s -bordercolor black -border 50%% %s'%(dir+"q"+filename,dir+"q"+filename))
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(dir+"q"+filename)],stdout=buf)
+          os.system('convert %s -bordercolor black -border 50%% %s'%(myDir+"q"+filename,myDir+"q"+filename))
+          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"q"+filename)],stdout=buf)
           out, err = i.communicate()
           is_found = len(out) > 2
           if is_found:
             how = "histEq: rotated, cut out, and smoothed"
 
         if not is_found:
-          os.system('convert %s -bordercolor black -border 50%% %s'%(dir+"r"+filename,dir+"r"+filename))
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(dir+"r"+filename)],stdout=buf)
+          os.system('convert %s -bordercolor black -border 50%% %s'%(myDir+"r"+filename,myDir+"r"+filename))
+          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"r"+filename)],stdout=buf)
           out, err = i.communicate()
           is_found = len(out) > 2
           if is_found:
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         # time of rotated vs original
         
         if not is_found:
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(dir+filename)],stdout=buf)
+          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+filename)],stdout=buf)
           out, err = i.communicate()
           is_found = len(out) > 2
           if is_found:
@@ -105,21 +105,21 @@ if __name__ == '__main__':
 
 
         if 0:#not is_found:
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(dir+"u"+filename)],stdout=buf)
+          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"u"+filename)],stdout=buf)
           out, err = i.communicate()
           is_found = len(out) > 2
           if is_found:
             how = "rotated"
 
         if 0:#not is_found:
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(dir+"us"+filename)],stdout=buf)
+          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"us"+filename)],stdout=buf)
           out, err = i.communicate()
           is_found = len(out) > 2
           if is_found:
             how = "rotated and smoothed"
 
         if 0:#not is_found:
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(dir+"t"+filename)],stdout=buf)
+          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"t"+filename)],stdout=buf)
           out, err = i.communicate()
           is_found = len(out) > 2
           if is_found:
@@ -138,6 +138,6 @@ if __name__ == '__main__':
   print "\nFound %d of %d in "%(n,m),time.time()-totalTime," seconds.",
   print "(OpenCV:",timeForCV," sec)\n"
   
- #if verbose:
-  dirr = ' '+dir
-  print dirr+dirr.join(failed)
+  if not(len(failed) == 0):# and verbose:
+    dirr = ' '+myDir
+    print dirr+dirr.join(failed)
