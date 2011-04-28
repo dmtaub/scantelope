@@ -48,7 +48,7 @@ def cvShiftDFT(src_arr, dst_arr ):
         cvCopy(tmp, q2)
 
 
-def getDFT(im):
+def getDFT(im, method = CV_DXT_FORWARD, do_shift = True):
 
     im_sz = cvGetSize(im)
     
@@ -79,7 +79,7 @@ def getDFT(im):
     # no need to pad bottom part of dft_A with zeros because of
     # use nonzero_rows parameter in cvDFT() call below
 
-    cvDFT( dft_A, dft_A, CV_DXT_FORWARD, complexInput.height )
+    cvDFT( dft_A, dft_A, method, complexInput.height )
 
 
     # Split Fourier in real and imaginary parts
@@ -96,10 +96,10 @@ def getDFT(im):
     cvLog( image_Re, image_Re ) # log(1 + Mag)
 
 
-
-    # Rearrange the quadrants of Fourier image so that the origin is at
-    # the image center
-    cvShiftDFT( image_Re, image_Re )
+    if do_shift:
+        # Rearrange the quadrants of Fourier image so that the origin is at
+        # the image center
+        cvShiftDFT( image_Re, image_Re )
 
     min, max, pt1, pt2 = cvMinMaxLoc(image_Re)
     cvScale(image_Re, image_Re, 1.0/(max-min), 1.0*(-min)/(max-min))
