@@ -48,14 +48,14 @@ class ToDisplay:
     """ class to store and display 8bit 1 channel images """
     imgs = {}
     names = []
-    def __init__(self):
+    def __init__(self,yoffset):
         pass
     
     @classmethod
-    def clear(cls):
+    def clear(cls,yoff = 0):
         cls.names = []
         cls.imgs = {} #free mem?
-
+        cls.yoff = yoff
     @classmethod
     def add(cls,name,img,apply_to_copy = None):
         cls.names.append(name)
@@ -79,7 +79,7 @@ class ToDisplay:
                 #        cvFont(1), white) 
                 cvNamedWindow( name, 1 )
                 cvShowImage( name, im )
-                cvMoveWindow( name, offset,0)
+                cvMoveWindow( name, offset,cls.yoff)
                 offset+=step
 
         key = cvWaitKey(1000)
@@ -615,7 +615,7 @@ def findAndOrient(myDir,filename, do_display = False, hacked = False, verbose = 
     
     src=cvLoadImage(myDir+filename, 0);
     if do_display:
-        ToDisplay.clear()
+        ToDisplay.clear(100)
         ToDisplay.add("input",src)
 
     if verbose:
@@ -729,26 +729,37 @@ def matrixFromImage(img,do_display,verbose):
     x,y = innerData(img_cpy,200,verbose)
 
     
-    sub = cvGetSubRect(img,cvRect(x+2 ,max(0, y-31 ),30,30  ))
 
-    h=sub.height
-    w=sub.width
 
-        
-    dwn = cvCreateImage( cvSize(w/3,h/3), img.depth, img.nChannels )
-    cvResize(sub,dwn,CV_INTER_AREA)
-    thrsh(dwn,50 )
+    if 1:
+        sub = cvGetSubRect(img,cvRect(x+2 ,max(0, y-31 ),30,30  ))
+    else:
+        sub = cvGetSubRect(img,cvRect(x+4 ,max(0, y-62 ),59,   59   ))
+    if 1:
+        h=sub.height
+        w=sub.width
 
-    retmat =  zeros(100)
-    #exec interactive()
-    idata = dwn.imageData
-    for i in range(len(idata)):
-        retmat[i] = ord(idata[i])
-    retmat.resize(10,10)
-    #for i in 
-    if do_display:
-      newimg = ToDisplay.add("second",sub)
-      newimg = ToDisplay.add("third",dwn)
+        #smoo(sub)
+        if do_display:
+          newimg = ToDisplay.add("second",sub)
+
+
+        dwn = cvCreateImage( cvSize(10,10), img.depth, img.nChannels )
+        cvResize(sub,dwn,CV_INTER_AREA)
+        thrsh(dwn,50 )
+
+        retmat =  zeros(100)
+        #exec interactive()
+        idata = dwn.imageData
+        for i in range(len(idata)):
+            retmat[i] = ord(idata[i])
+        retmat.resize(10,10)
+        #for i in 
+        if do_display:
+          newimg = ToDisplay.add("third",dwn)
+#    else:
+#        pass
+
     if do_display:
         ToDisplay.showIm()
 

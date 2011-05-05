@@ -107,7 +107,10 @@ class ModuleECC200:
 
         data=self.rsDecoder.decode(str(bytearray(cwords)))
 
-        if len(data) != 5:
+        if len(data) > 5:
+            #print map(ord,list(data))
+            data = data[-5:]
+        elif len(data) != 5:
             return None
         #data = data.replace('\x00','')
         #import pdb;pdb.set_trace()
@@ -124,6 +127,6 @@ class ModuleECC200:
             print decoded
             print printable
         
-        if len(printable) != 10 or printable[:2] != '10':
+        if len(printable.strip()) != 10 or printable[:2] != '10' or not printable.isdigit():
             return None
         return printable
