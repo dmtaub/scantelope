@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # This is a standalone program. Pass an image name as a first parameter of the program.
+# has some manual settings for lowres:
+low_res = True
 
 from numpy import array, zeros
 import sys,os
@@ -544,8 +546,10 @@ def houghLines(img,color_img):
 def scanOrientation(img,do_display):
     h=img.height
     w=img.width
-    rsz = 4
-
+    if low_res:
+        rsz = 4
+    else:
+        rsz = 8
     top = cvGetSubRect(img,cvRect(0,0,w,rsz))
     bottom = cvGetSubRect(img,cvRect(0,h-rsz,w,rsz))
     left = cvGetSubRect(img,cvRect(0,0,rsz,h))
@@ -666,7 +670,11 @@ def findAndOrient(myDir,filename, do_display = False, hacked = False, verbose = 
     color_src = cvCreateImage( cvGetSize(rotated_src), rotated_src.depth, 3 );
     cvCvtColor(rotated_src,color_src,CV_GRAY2BGR)
 
-    code_region = templateMatch(rotated_src,do_display,"template2b.png")
+    if low_res:
+        template_fn = "template2b.png"
+    else:
+        template_fn = "template2b_large.png"
+    code_region = templateMatch(rotated_src,do_display,template_fn )
     rotated2 = cvGetSubRect(rotated_src,code_region)
 
     angle = scanOrientation(rotated2,do_display)
@@ -728,13 +736,10 @@ def matrixFromImage(img,do_display,verbose):
 
     x,y = innerData(img_cpy,200,verbose)
 
-    
-
-
-    if 1:
+    if low_res:
         sub = cvGetSubRect(img,cvRect(x+2 ,max(0, y-31 ),30,30  ))
     else:
-        sub = cvGetSubRect(img,cvRect(x+4 ,max(0, y-62 ),59,   59   ))
+        sub = cvGetSubRect(img,cvRect(x+4 ,max(0, y-63 ),59,   59   ))
     if 1:
         h=sub.height
         w=sub.width
