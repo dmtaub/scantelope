@@ -6,8 +6,8 @@ from pdb import set_trace as st
 import findcode
 import time
 myDir='/tmp/'
-pref='split'
-ext='.png'
+pref='lowres'
+ext='.tif'
 
 if __name__ == '__main__':
   do_display = False
@@ -28,7 +28,7 @@ if __name__ == '__main__':
         ext = '.'+splt[1]
       else:
         files = sys.argv[2:]
-        
+  print files
   myDir += '/'
   if files == None:
       files = [i for i in os.listdir(myDir) if i.find(pref) != -1 and ''.join(i.split(pref)).rstrip(ext).isdigit()]
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
 
       lastCVTime = time.time()
-      findcode.find(myDir,filename,do_display, hacked,verbose)#[3] > 0:
+      findcode.findAndOrient(myDir,filename,do_display, hacked,verbose)#[3] > 0:
       timeForCV += (time.time() - lastCVTime)
         
       if hacked:
