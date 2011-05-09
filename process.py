@@ -1,17 +1,18 @@
 #!/usr/bin/python
 import sys,os, subprocess
-from PIL import Image, ImageOps
-from pydmtx import DataMatrix
+from pydmtx import DataMatrix, Image
 from pdb import set_trace as st
 import findcode
 import time
+import cv
+
 myDir='/tmp/'
-pref='lowres'
-ext='.tif'
+pref='split'
+ext='.png'
+
 
 if __name__ == '__main__':
   do_display = False
-  hacked = True
   verbose = False
   totalTime = time.time()
   failed = []
@@ -28,7 +29,7 @@ if __name__ == '__main__':
         ext = '.'+splt[1]
       else:
         files = sys.argv[2:]
-  print files
+        
   myDir += '/'
   if files == None:
       files = [i for i in os.listdir(myDir) if i.find(pref) != -1 and ''.join(i.split(pref)).rstrip(ext).isdigit()]
@@ -36,7 +37,6 @@ if __name__ == '__main__':
       
   n=0
   m=0
-
 
   lastCVTime = 0
   timeForCV = 0
@@ -47,83 +47,49 @@ if __name__ == '__main__':
       if filename.find('/') != -1:
         myDir,filename = os.path.split(filename)
         myDir += '/'
-
-      if hacked:
-        is_found = False    
-        buf=subprocess.PIPE
-
-        shrink =" -S 1 -e 20 -E 32"
-        if filename.find('high') != -1:
-          shrink = " -S 2 -e 20 -E 32"
-
-
-        s= ("-q 10 -t 5 -m 200 -N 1"+shrink+" -s 12x12").split() #" -s 12x12 -e 20 -E 32
-  
-
-
-
+ 
       lastCVTime = time.time()
-      findcode.findAndOrient(myDir,filename,do_display, hacked,verbose)#[3] > 0:
+
+      cv_orig,cv_smoo,cv_final = findcode.findAndOrient(myDir,filename,do_display, verbose)
+
       timeForCV += (time.time() - lastCVTime)
+      
+      for img,name in [[cv_smoo,"smooth"],
+                       [cv_final,"clipped"],
+                       [cv_orig,"original"]]:
         
-      if hacked:
-        if not is_found:
-          os.system('convert %s -bordercolor black -border 50%% %s'%(myDir+"rs"+filename,myDir+"rs"+filename))
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"rs"+filename)],stdout=buf)
-          out, err = i.communicate()
-          is_found = len(out) > 2
-          if is_found:
-            how = "rotated, cut out, and smoothed"
-
-        if 0:#not is_found:
-          os.system('convert %s -bordercolor black -border 50%% %s'%(myDir+"q"+filename,myDir+"q"+filename))
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"q"+filename)],stdout=buf)
-          out, err = i.communicate()
-          is_found = len(out) > 2
-          if is_found:
-            how = "histEq: rotated, cut out, and smoothed"
-
-        if not is_found:
-          os.system('convert %s -bordercolor black -border 50%% %s'%(myDir+"r"+filename,myDir+"r"+filename))
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"r"+filename)],stdout=buf)
-          out, err = i.communicate()
-          is_found = len(out) > 2
-          if is_found:
-            how = "rotated and cut out"
-
-        # one might think it better to test original first, but since time spent in CV functions 
-        # is negligible, and dmtxread can take some time looking for a barcode in a noisy image, 
-        # it ends up being fastest to check the most-processed images first. Have not explored 
-        # time of rotated vs original
+        if is_found:
+          break
         
-        if not is_found:
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+filename)],stdout=buf)
-          out, err = i.communicate()
-          is_found = len(out) > 2
-          if is_found:
-            how = "original image"
+        dmtx_im = Image.fromstring("L", cv.GetSize(img), img.tostring())
+
+        padding = 0.1
+        ncols,nrows = dmtx_im.size
+
+        padw = (ncols)*padding
+        padh = (nrows)*padding
+
+        isize = (round(ncols+2*padw),round(nrows+2*padh))#cols*photow+padw,nrows*photoh+padh)
+
+    # Create the new image. The background doesn't have to be white
+
+        dmtx_image = Image.new('RGB',isize,0)
+        bbox = (round(padw),round(padh),ncols+round(padw),nrows+round(padh))
+
+        
+        dmtx_image.paste(dmtx_im,bbox)
 
 
-        if 0:#not is_found:
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"u"+filename)],stdout=buf)
-          out, err = i.communicate()
-          is_found = len(out) > 2
-          if is_found:
-            how = "rotated"
+        (width, height) = dmtx_image.size
+        dm_read = DataMatrix(max_count = 1, timeout = 300, shape = DataMatrix.DmtxSymbol12x12, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
+        dmtx_code = dm_read.decode (width, height, buffer(dmtx_image.tostring()))
 
-        if 0:#not is_found:
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"us"+filename)],stdout=buf)
-          out, err = i.communicate()
-          is_found = len(out) > 2
-          if is_found:
-            how = "rotated and smoothed"
+        if dmtx_code is not None:
+            how = "Quick Search: "+str(name)
+            is_found = True
+            
 
-        if 0:#not is_found:
-          i=subprocess.Popen(['dmtxread']+s+['%s'%(myDir+"t"+filename)],stdout=buf)
-          out, err = i.communicate()
-          is_found = len(out) > 2
-          if is_found:
-            how = "thresholded"
+        out = dmtx_code
 
       if is_found:
         n+=1
