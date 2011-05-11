@@ -6,6 +6,8 @@ import findcode
 import time
 import cv
 
+EXPECTED_LEN = 10
+
 myDir='/tmp/'
 pref='split'
 ext='.png'
@@ -81,15 +83,24 @@ if __name__ == '__main__':
 
 
         (width, height) = dmtx_image.size
-        dm_read = DataMatrix(max_count = 1, timeout = 300, shape = DataMatrix.DmtxSymbol12x12, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
+        dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
+        #dm_read = DataMatrix(max_count = 1, timeout = 300, shape = DataMatrix.DmtxSymbol12x12, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
         dmtx_code = dm_read.decode (width, height, buffer(dmtx_image.tostring()))
 
-        if dmtx_code is not None:
+        if dmtx_code is not None and len(dmtx_code) == EXPECTED_LEN:
             how = "Quick Search: "+str(name)
             is_found = True
             
 
         out = dmtx_code
+
+#      if not is_found:
+#        dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
+#        dmtx_code = dm_read.decode (width, height, buffer(dmtx_image.tostring()))
+#        if dmtx_code is not None and len(dmtx_code) == EXPECTED_LEN:
+#            how = "Quick Search(2): "+str(name)
+#            is_found = True
+#      out = dmtx_code
 
       if is_found:
         n+=1
