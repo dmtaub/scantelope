@@ -13,10 +13,17 @@ import threading
 from time import sleep,strftime,time
 from subprocess import Popen, PIPE
 from pydmtx import DataMatrix, Image
+from datetime import datetime
 import findcode
 import cv
 
+def modification_date(filename):
+    t = path.getmtime(filename)
+    retVal = str(datetime.fromtimestamp(t))
+    return retVal.split('.')[0]
+
 defaultfn='lowres.tif'
+
 class DMDecoder():
    do_display = False
    verbose = False
@@ -144,7 +151,7 @@ class DMDecoder():
       return self.output,self.failed,self.status
 
 def strtime():
-   return strftime("%Y-%m-%d %H:%M:%S<br><br>")
+   return strftime("%Y-%m-%d %H:%M:%S")
 
 class ScanControl(threading.Thread):
    def __init__(self):
@@ -154,28 +161,52 @@ class ScanControl(threading.Thread):
       self.isScanning = False
       self.refreshInterval = 1 #in seconds
       self.scanners = [] 
-      self.status = strtime()+'initialized'
-      self.lock = threading.Lock()
+      self.lock = threading.RLock()
+      
+      self.setStatus(strtime()+'\ninitialized')
+      
       self.whichScanner = 0
       self.decoded ={}
+      self.filetime = ''
+
+      self.decodeOnly = False
+
+   def setStatus(self,val):
+      self.acquire()
+      self.status = val
+      self.release()
+
+   def getStatus(self):
+      self.acquire()
+      c = self.status[:]
+      self.release()
+      return c
+
+   def updateStatus(self,val):
+      self.acquire()
+      self.status += val
+      self.release()
+
+   def reset(self):
+      self.decoded = {}
+      self.dm.__init__()
 
    def startScan(self):
       self.refreshInterval = 1
       self.isScanning = True
-      self.status = strtime()+'started'
+      self.setStatus(strtime()+'\nstarted')
       self.dm.__init__()
    def stopScan(self):
       self.isScanning = False
       self.refreshInterval = 2
-      self.status = strtime()+'stopped'
+      self.setStatus(strtime()+'\nstopped')
    def autoStopScan(self):
       self.isScanning = False
       self.refreshInterval = 2
-      self.status += '\n'+strtime()+'stopped'
+      self.updateStatus('\n'+strtime()+'\nstopped')
 
    def acquire(self):
       self.lock.acquire()
-        
    def release(self):
       self.lock.release()
         
@@ -187,7 +218,58 @@ class ScanControl(threading.Thread):
       else:
          self.scanners = out.strip().split()
          self.scanners = filter(lambda x: x[:3] == 'net',self.scanners)
-         
+
+   def _shellOut(self):
+
+      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+'--batch=/tmp/batch%d.tif --batch-count=1 --resolution 300 --format=tiff -l 14.5 -x 85 -t 10 -y 125'.split(),stdout=PIPE,stderr=PIPE)
+      out,err = proc.communicate()
+       #self.acquire()
+      self.updateStatus(out+"\n"+err+'\n')
+       #self.release()
+
+      # i=Image.open('/tmp/batch1.tif')
+      # i.filename =None
+      # try:
+      #    i.load()
+      # except:
+      #    pass
+      # if i != None:
+      #    i.save('/tmp/batch2.tif')
+
+      proc=Popen('convert /tmp/batch2.tif -crop 817x1251+91+112 /tmp/inner1.tif'.split(),stdout=PIPE,stderr=PIPE)
+      out,err = proc.communicate()
+       #self.acquire()
+      self.updateStatus(out+"\n"+err+'\n')
+
+
+      proc=Popen('convert /tmp/inner1.tif -density 300 -crop 8x12-17-19@! -shave 10x10 +repage /tmp/lowres%d.tif'.split(),stdout=PIPE,stderr=PIPE)
+      out,err = proc.communicate()
+       #self.acquire()
+      self.updateStatus(out+"\n"+err+'\n')
+ #     import pdb;pdb.set_trace()
+
+   def _doDecode(self):
+      output,failed,status=self.dm.parseImages()
+      self.updateStatus(status)
+      self.acquire()
+      for k,v in output.items():
+         #import pdb;pdb.set_trace()
+         self.decoded[k] = [v,strtime(),
+                            modification_date(self.dm.myDir+k)]
+                            #ctime(stat(self.dm.myDir+k).st_mtime)]
+      self.release()
+      if len(self.decoded) == 96:
+         self.updateStatus("\nall found!\n")
+         self.autoStopScan()
+         self.dm.reinit()
+      else:
+         self.updateStatus("\nkeep looking...\n")
+         self.dm.reinit(failed)
+
+
+
+      return output,failed
+
    def run(self):
       self.getScanners()
       while 1:
@@ -195,69 +277,47 @@ class ScanControl(threading.Thread):
 
          if self.isScanning and len(self.scanners) > self.whichScanner:
             self.dm.resettime()
-            self.status = self.status.strip().split('\n')[-1]+'\n'+strtime()
-            proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+'--batch=/tmp/batch%d.tif --batch-count=1 --resolution 300 --format=tiff -l 14.5 -x 85 -t 10 -y 125'.split(),stdout=PIPE,stderr=PIPE)
-            out,err = proc.communicate()
-             #self.acquire()
-            self.status+= (out+"\n"+err+'\n')
-             #self.release()
+            self.setStatus(self.getStatus().strip().split('\n')[-1]+'\n'+strtime())
 
-            i=Image.open('/tmp/batch1.tif')
-            i.filename =None
-            try:
-               i.load()
-            except:
-               pass
-            if i != None:
-               i.save('/tmp/batch2.tif')
-
-
-
-#            
-            proc=Popen('convert /tmp/batch2.tif -crop 817x1251+91+112 /tmp/inner1.tif'.split(),stdout=PIPE,stderr=PIPE)
-            out,err = proc.communicate()
-             #self.acquire()
-            self.status+= (out+"\n"+err+'\n')
-
-#            import pdb;pdb.set_trace()
-            proc=Popen('convert /tmp/inner1.tif -density 300 -crop 8x12-17-19@! -shave 10x10 +repage /tmp/lowres%d.tif'.split(),stdout=PIPE,stderr=PIPE)
-            out,err = proc.communicate()
-             #self.acquire()
-            self.status+= out+"\n"+err+'\n'
-
-            output,failed,status=self.dm.parseImages()
-            self.status += status
-
-            for k,v in output.items():
-               self.decoded[k] = v
-
-            if len(self.decoded) == 96:
-               self.status += "\nall found!\n"
-               self.autoStopScan()
-               self.dm.reinit()
-            else:
-               self.status += "\nkeep looking...\n"
-               self.dm.reinit(failed)
-
+            self._shellOut()
+            self._doDecode()
             sleep(self.refreshInterval) 
-            
-         elif self.scanners == []:
+         elif self.decodeOnly:
+            self._doDecode()
+            self.decodeOnly = False
+         elif self.scanners == []: # or is scanner error..
             self.getScanners()
          
 
 
+def getWell(fn,pref):
+   n=fn.split(pref)[1].split('.')[0]
+   if not n.isdigit():
+      print "error, n:",n
+      return -1
+   n = int(n)
+   return n
+   # system does not actually work: 
+   row = chr(ord('A')+int(n/12))
+   col = (n % 12) + 1
+   #print n, row, col
+   return "%s%02d"%(row,col)
+
 class MyHandler(BaseHTTPRequestHandler):
 
-   def wwrite(self,data):
-      self.wfile.write(data.replace('\n','<br>'))
-      
+   def wwrite(self,data,line_break = '<br>'):
+      #if line_break != None:
+      #   self.wfile.write(data.replace('\n',line_break))
+      #else:
+         self.wfile.write(data)
+
    def do_GET(self):
       wwrite=self.wwrite
       try:
          #            print self.path
          if self.path.startswith("/scan/"):
             self.send_response(200)
-            self.send_header('Content-type','text/html')
+            self.send_header('Content-type','text/plain')
             self.end_headers() 
             if self.path.endswith("list"):
                l='\n'.join(MyHandler.sc.scanners)
@@ -268,8 +328,11 @@ class MyHandler(BaseHTTPRequestHandler):
             elif self.path.endswith("stop"):
                MyHandler.sc.stopScan()
                wwrite("scan stopped")
+            elif self.path.endswith("reset"):
+               MyHandler.sc.reset()
+               wwrite("reset decoded")
             elif self.path.endswith("status"):
-               wwrite(MyHandler.sc.status)
+               wwrite(MyHandler.sc.getStatus())
             else:
                wwrite("unknown scan command")
                return
@@ -280,6 +343,29 @@ class MyHandler(BaseHTTPRequestHandler):
             wwrite("hey, today is the " + str(time.localtime()[7]))
             wwrite(" day in the year " + str(time.localtime()[0]))
             return
+         elif self.path.strip('/') == '':
+            self.send_response(200)
+            self.send_header('Content-type','text/plain')
+            self.end_headers()
+            wwrite("TUBE,BARCODE,DECODE_TIME,FILEMOD_TIME\n",None)
+
+            MyHandler.sc.acquire()
+            listCodes = MyHandler.sc.decoded.items()
+            MyHandler.sc.release()
+
+            listCodes = map(lambda x: (getWell(x[0],MyHandler.sc.dm.pref),
+                                       x[1][0],x[1][1],x[1][2]),
+                            listCodes)
+            listCodes.sort()
+            for well,code,decTime,modTime in listCodes:
+                wwrite("%s,%s,%s,%s\n"%(well,code,decTime,modTime),None)
+            return
+         elif self.path.endswith('decode'):
+            self.send_response(200)
+            self.send_header('Content-type','text/plain')
+            self.end_headers()
+            wwrite("Decode Command\n")
+            MyHandler.sc.decodeOnly = True
          else:
             self.send_error(404,'Command/File not found')
             return
