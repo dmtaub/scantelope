@@ -83,14 +83,16 @@ class MyHandler(BaseHTTPRequestHandler):
 
                decoded = MyHandler.sc.getNewDecoded(MyHandler.lastUpdateTime)
                if decoded == -1:
-                   listCodes = self.listCodes
+                   listCodes = MyHandler.listCodes
                else:
                    MyHandler.lastUpdateTime = datetime.now()
                    listCodes = decoded.iteritems()
-               listCodes = map(lambda x: (getWell(x[0],MyHandler.sc.pref),
-                                          x[1][0],x[1][1],x[1][2]),
-                               listCodes)
-               listCodes.sort()
+                   listCodes = map(lambda x: (getWell(x[0],MyHandler.sc.pref),
+                                              x[1][0],x[1][1],x[1][2]),
+                                   listCodes)
+                   listCodes.sort()
+                   MyHandler.listCodes = listCodes
+               
                for well,code,decTime,modTime in listCodes:
                    wwrite("%s,%s,%s,%s\n"%(well,code,decTime,modTime),None)
                return
