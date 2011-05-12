@@ -273,7 +273,7 @@ def thrsh(src,v=22):
 
 def findAndOrient(myDir,filename, do_display = False, verbose = False):
     
-    ToDisplay.src=src=cv.LoadImage(myDir+filename, 0);
+    src=cv.LoadImage(myDir+filename, 0);
     if do_display:
         ToDisplay.clear(100)
         ToDisplay.add("input",src)

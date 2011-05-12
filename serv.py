@@ -296,10 +296,10 @@ def getWell(fn,pref):
       print "error, n:",n
       return -1
    n = int(n)
-   return n
-   # system does not actually work: 
-   row = chr(ord('A')+int(n/12))
-   col = (n % 12) + 1
+   #return n
+   
+   row = chr(ord('A')+int(n%8))
+   col = (n / 8) + 1
    #print n, row, col
    return "%s%02d"%(row,col)
 
