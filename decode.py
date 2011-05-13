@@ -2,10 +2,12 @@
 
 EXPECTED_LEN = 10
 
+
 from time import time
 from pydmtx import DataMatrix, Image
 import findcode
 import cv
+
 
 class DMDecoder():
    do_display = False
@@ -77,7 +79,11 @@ class DMDecoder():
              (width, height) = dmtx_image.size
              
              # Send to datamatrix library
-             dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
+             if findcode.low_res: 
+                dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
+             else:
+                dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10, shrink = 2)
+
 
             #dm_read = DataMatrix(max_count = 1, timeout = 300, shape = DataMatrix.DmtxSymbol12x12, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
 

@@ -5,7 +5,7 @@ from pdb import set_trace as st
 import findcode
 import time
 import cv
-
+#findcode.low_res = False
 EXPECTED_LEN = 10
 
 myDir='/tmp/'
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         padw = (ncols)*padding
         padh = (nrows)*padding
 
-        isize = (round(ncols+2*padw),round(nrows+2*padh))#cols*photow+padw,nrows*photoh+padh)
+        isize = (round(ncols+2*padw),round(nrows+2*padh))#cols*photow+padw,nrows*photoh+padho)
 
     # Create the new image. The background doesn't have to be white
 
@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
 
         (width, height) = dmtx_image.size
-        dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
+        dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10, shrink = 2)
         #dm_read = DataMatrix(max_count = 1, timeout = 300, shape = DataMatrix.DmtxSymbol12x12, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
         dmtx_code = dm_read.decode (width, height, buffer(dmtx_image.tostring()))
 

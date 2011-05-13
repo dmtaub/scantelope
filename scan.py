@@ -14,6 +14,19 @@ defaultfn=['lowres','tif']
 defaultdir= '/tmp/'
 
 
+def getWell(fn,pref):
+   n=fn.split(pref)[1].split('.')[0]
+   if not n.isdigit():
+      print "error, n:",n
+      return -1
+   n = int(n)
+   #return n
+   
+   row = chr(ord('A')+int(n%8))
+   col = (n / 8) + 1
+   #print n, row, col
+   return "%s%02d"%(row,col)
+
 def modification_date(filename):
     t = path.getmtime(filename)
     retVal = str(datetime.fromtimestamp(t))
@@ -26,9 +39,13 @@ class ScanControl(threading.Thread):
    def __init__(self):
       threading.Thread.__init__(self)
 
+      if decode.findcode.low_res == True:
+          self.res = 300
+      else:
+          self.res = 600
       self.forceRepeat = False
       self.getFilenames()
-      self.dm = decode.DMDecoder(self.myDir,self.files)
+      self.dm = decode.DMDecoder(self.myDir,self.files)#,res = self.res)
       self.daemon = True #This kills this thread when the main thread stops  
       self.isScanning = False
       self.refreshInterval = 1 #in seconds
@@ -134,8 +151,8 @@ class ScanControl(threading.Thread):
        self.release()
    
    def _shellOut(self):
-
-      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+'--batch=/tmp/batch%d.tif --batch-count=1 --resolution 300 --format=tiff -l 14.5 -x 85 -t 10 -y 125'.split(),stdout=PIPE,stderr=PIPE)
+      
+      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/batch%d.tif --batch-count=1 --resolution '+str(self.res)+' --format=tiff -l 14.5 -x 85 -t 10 -y 125').split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
 
       self.updateStatus(out+"\n"+err+'\n')
@@ -150,15 +167,24 @@ class ScanControl(threading.Thread):
       # if i != None:
       #    i.save('/tmp/batch2.tif')
 
-      proc=Popen('convert /tmp/batch1.tif -crop 817x1251+91+112 /tmp/inner1.tif'.split(),stdout=PIPE,stderr=PIPE)
+      if self.res == 300:
+          cropA = '-crop 817x1251+91+112'
+          cropB = '-crop 8x12-17-19@! -shave 10x10'
+          density = '-density 300 '
+      elif self.res == 600:
+          cropA = '-crop 1634x2502+182+224'
+          cropB = '-crop 8x12-34-38@! -shave 20x20'
+          density = '-density 600 '
+
+      proc=Popen(('convert /tmp/batch1.tif '+density+cropA+' /tmp/inner1.tif').split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
       self.updateStatus(out+"\n"+err+'\n')
 
-      proc=Popen(('convert /tmp/inner1.tif -density 300 -crop 8x12-17-19@! -shave 10x10 +repage '+self.myDir+self.pref+'%d'+self.ext).split(),stdout=PIPE,stderr=PIPE)
+      proc=Popen((('convert /tmp/inner1.tif '+density+cropB+' +repage '+self.myDir+self.pref+'%d'+self.ext)).split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
 
       self.updateStatus(out+"\n"+err+'\n')
-
+      
 
    def _doDecode(self):
        output,failed,status=self.dm.parseImages()
@@ -201,6 +227,7 @@ class ScanControl(threading.Thread):
            elif self.decodeOnly:
                self.dm.resettime()
                self._doDecode()
-               self.decodeOnly = False
+               if not self.forceRepeat:
+                   self.decodeOnly = False
            elif self.scanners == []: # or is scanner error..
                self.findScanners()

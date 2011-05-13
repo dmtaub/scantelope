@@ -1,11 +1,14 @@
 #!/usr/bin/python
+# Server for decoded DM -- Daniel Taub, dmtaub.com
+# Server based on code from Jon Berg , turtlemeat.com
 
-#Based on code from Jon Berg , turtlemeat.com
 
 #import cgi
 #import pri
 
 import scan
+scan.decode.findcode.low_res = False
+scan.defaultfn[0]='highres'
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
@@ -17,19 +20,6 @@ def modification_date(filename):
     t = path.getmtime(filename)
     retVal = str(datetime.fromtimestamp(t))
     return retVal.split('.')[0]
-
-def getWell(fn,pref):
-   n=fn.split(pref)[1].split('.')[0]
-   if not n.isdigit():
-      print "error, n:",n
-      return -1
-   n = int(n)
-   #return n
-   
-   row = chr(ord('A')+int(n%8))
-   col = (n / 8) + 1
-   #print n, row, col
-   return "%s%02d"%(row,col)
 
 class MyHandler(BaseHTTPRequestHandler):
 
@@ -87,7 +77,7 @@ class MyHandler(BaseHTTPRequestHandler):
                else:
                    MyHandler.lastUpdateTime = datetime.now()
                    listCodes = decoded.iteritems()
-                   listCodes = map(lambda x: (getWell(x[0],MyHandler.sc.pref),
+                   listCodes = map(lambda x: (scan.getWell(x[0],MyHandler.sc.pref),
                                               x[1][0],x[1][1],x[1][2]),
                                    listCodes)
                    listCodes.sort()
