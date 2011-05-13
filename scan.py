@@ -26,6 +26,7 @@ class ScanControl(threading.Thread):
    def __init__(self):
       threading.Thread.__init__(self)
 
+      self.forceRepeat = False
       self.getFilenames()
       self.dm = decode.DMDecoder(self.myDir,self.files)
       self.daemon = True #This kills this thread when the main thread stops  
@@ -53,7 +54,7 @@ class ScanControl(threading.Thread):
    def getNewDecoded(self,time):
        if self.mostRecentUpdate > time:
            #print time, "<",self.mostRecentUpdate
-           print "new update available"
+           #print "new update available"
            return self.getDecoded()
        else:
            return -1
@@ -149,7 +150,7 @@ class ScanControl(threading.Thread):
       # if i != None:
       #    i.save('/tmp/batch2.tif')
 
-      proc=Popen('convert /tmp/batch2.tif -crop 817x1251+91+112 /tmp/inner1.tif'.split(),stdout=PIPE,stderr=PIPE)
+      proc=Popen('convert /tmp/batch1.tif -crop 817x1251+91+112 /tmp/inner1.tif'.split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
       self.updateStatus(out+"\n"+err+'\n')
 
@@ -173,13 +174,17 @@ class ScanControl(threading.Thread):
        if flag:
            self.mostRecentUpdate = datetime.now()
 
-       if len(failed) == 0:
+       if self.forceRepeat:
+           self.updateStatus("\n scanning forced, repeating...\n")
+           self.dm.__init__()
+       elif len(failed) == 0:
            self.updateStatus("\nall found!\n")
            self.autoStopScan()
            self.dm.__init__()
        else:
            self.updateStatus("\nkeep looking...\n")
-           self.dm.__init__(failed)
+           print failed
+           self.dm.__init__(files=failed)
 
        return output,failed
 

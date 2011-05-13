@@ -51,7 +51,7 @@ class DMDecoder():
                                                             self.verbose)
           timeForCV += (time() - lastCVTime)
 
-          for img,name in [[cv_smoo,"smooth"],
+          for img,name in [#[cv_smoo,"smooth"], #seems to introduce many errors
                            [cv_final,"clipped"],
                            [cv_orig,"original"]]:
 
