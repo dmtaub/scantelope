@@ -5,7 +5,7 @@ from pdb import set_trace as st
 import findcode
 import time
 import cv
-#findcode.low_res = False
+findcode.low_res = False
 EXPECTED_LEN = 10
 
 myDir='/tmp/'

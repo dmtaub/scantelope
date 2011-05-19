@@ -5,7 +5,7 @@ from os import path, listdir
 
 import threading
 
-from time import sleep,strftime
+from time import sleep,strftime,time
 from subprocess import Popen, PIPE
 from datetime import datetime
 import decode
@@ -58,9 +58,18 @@ class ScanControl(threading.Thread):
       self.setDecoded({})
       self.filetime = ''
       self.mostRecentUpdate = datetime.now()
-
-
+      self.timeout = -1
+      self.lastActive = time()
       self.decodeOnly = False
+
+   def resetTimer(self):
+      self.lastActive = time()
+
+   def timeoutExpired(self):
+      if self.timeout == -1:
+         return false
+      else:
+         return abs(time()-self.lastActive) > self.timeout
 
    def getDecoded(self):
        self.acquire()
@@ -129,7 +138,7 @@ class ScanControl(threading.Thread):
    def autoStopScan(self):
       self.isScanning = False
       self.refreshInterval = 2
-      self.updateStatus(strtime()+'\nstopped')
+      self.updateStatus(strtime()+'\nautostopped')
 
    def acquire(self):
       self.lock.acquire()
@@ -201,12 +210,16 @@ class ScanControl(threading.Thread):
            self.mostRecentUpdate = datetime.now()
 
        if self.forceRepeat:
-           self.updateStatus("\n scanning forced, repeating...\n")
-           self.dm.__init__()
+           if self.timeoutExpired():
+              self.autoStopScan()
+              self.updateStatus("\nTimer has run down\n")
+           else:
+              self.updateStatus("\nscanning forced, repeating...\n")
+           self.dm.__init__(self.myDir,self.files)
        elif len(failed) == 0:
-           self.updateStatus("\nall found!\n")
            self.autoStopScan()
-           self.dm.__init__()
+           self.updateStatus("\nall found!\n")
+           self.dm.__init__(self.myDir,self.files)
        else:
            self.updateStatus("\nkeep looking...\n")
            print failed

@@ -13,7 +13,7 @@ scan.defaultfn[0]='highres'
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 PORT=2233
-from time import localtime
+from time import localtime, time
 from datetime import datetime
 
 def modification_date(filename):
@@ -22,7 +22,6 @@ def modification_date(filename):
     return retVal.split('.')[0]
 
 class MyHandler(BaseHTTPRequestHandler):
-
    listCodes = []
    def wwrite(self,data,line_break = '<br>'):
       #if line_break != None:
@@ -31,6 +30,7 @@ class MyHandler(BaseHTTPRequestHandler):
          self.wfile.write(data)
 
    def do_GET(self):
+       MyHandler.sc.resetTimer()
        wwrite=self.wwrite
        try:
          #            print self.path
@@ -57,13 +57,6 @@ class MyHandler(BaseHTTPRequestHandler):
                    wwrite(MyHandler.sc.getStatus())
                else:
                    wwrite("unknown scan command")
-               return
-           elif self.path.endswith("test"):   #our dynamic content
-               self.send_response(200)
-               self.send_header('Content-type','text/html')
-               self.end_headers()
-               wwrite("hey, today is the " + str(localtime()[7]))
-               wwrite(" day in the year " + str(localtime()[0]))
                return
            elif self.path.strip('/') == '':
                self.send_response(200)
@@ -118,16 +111,26 @@ class MyHandler(BaseHTTPRequestHandler):
     #         pass
 
 def main():
-   try:
+   
       MyHandler.lastUpdateTime = datetime.now()
       MyHandler.sc=scan.ScanControl()
+      MyHandler.sc.forceRepeat = True
+      MyHandler.sc.timeout = 45 #seconds
       MyHandler.sc.start()
+      
       server = HTTPServer(('', PORT), MyHandler)
       print 'started httpserver...'
-      server.serve_forever()
-   except KeyboardInterrupt:
-      print '^C received, shutting down server'
-      server.socket.close()
+
+      running = True
+      try:
+          while running:
+              server.handle_request() # blocks until request 
+      except KeyboardInterrupt:
+          print '^C received, shutting down server'
+          server.socket.close()
+      finally:
+          print 'Shutting down server'
+          server.socket.close()
       
 if __name__ == '__main__':
    main()
