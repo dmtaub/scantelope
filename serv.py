@@ -13,7 +13,7 @@ scan.defaultfn[0]='highres'
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 PORT=2233
-from time import localtime, time
+from time import localtime, time, sleep
 from datetime import datetime
 
 def modification_date(filename):
@@ -45,6 +45,7 @@ class MyHandler(BaseHTTPRequestHandler):
                    if MyHandler.sc.getScanners() == []:
                        wwrite("No scanners found, try power cycling the scanner")
                    else:
+#                       sleep(15)
                        MyHandler.sc.startScan()
                        wwrite("scan started")
                elif self.path.endswith("stop"):

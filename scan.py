@@ -121,8 +121,11 @@ class ScanControl(threading.Thread):
       self.release()
 
    def reset(self):
-      self.setDecoded({})
+      self.resetDecoded()
       self.dm.__init__(self.myDir,self.files)
+
+   def resetDecoded(self):
+      self.setDecoded({})
 
    def startScan(self):
       self.refreshInterval = 1
@@ -200,6 +203,8 @@ class ScanControl(threading.Thread):
        self.updateStatus(status)
        flag = False
        self.acquire()
+       if self.forceRepeat:
+          self.decoded = {}
        for k,v in output.items():
            self.decoded[k] = [v,strtime(),
                               modification_date(self.dm.myDir+k)]
