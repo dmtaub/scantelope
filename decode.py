@@ -37,6 +37,7 @@ class DMDecoder():
 
       lastCVTime = 0
       timeForCV = 0
+      print "len self.files in decode: ",len(self.files)
       for filename in self.files:
 
           is_found = False    
@@ -52,7 +53,7 @@ class DMDecoder():
                                                             self.do_display, 
                                                             self.verbose)
           timeForCV += (time() - lastCVTime)
-
+          cv.SaveImage(self.myDir+filename.replace('tif','jpg'),cv_final)
           for img,name in [#[cv_smoo,"smooth"], #seems to introduce many errors
                            [cv_final,"clipped"],
                            [cv_orig,"original"]]:

@@ -2,16 +2,16 @@
 #dmtxread=/home/dmt/devel/libdmtx-utils/dmtxread/dmtxread
 
 cd /tmp/
-scanimage -d net:localhost:avision:libusb --batch=batch%d.tif --batch-count=1 --resolution 300 --format=tiff -l 14.5 -x 85 -t 10 -y 125
-convert batch1.tif -crop 817x1251+91+112 inner1.tif
+#scanimage -d net:localhost:avision:libusb --batch=batch%d.tif --batch-count=1 --resolution 300 --format=tiff -l 14.5 -x 85 -t 10 -y 125
+#convert batch1.tif -crop 817x1251+91+112 inner1.tif
 # this requires at least imagemagick 6.5.8-9
-convert inner1.tif -density 300 -crop 8x12-17-19@\! -shave 10x10 +repage twistlow%d.tif
-exit 0
-#sudo scanimage -d avision:libusb --batch=batch%d.tif --batch-count=1 --resolution 600 --format=tiff -l 14.5 -x 85 -t 10 -y 125
-#convert batch1.tif -density 600 -crop 1634x2502+182+224 inner2.tif
-# this requires at least imagemagick 6.5.8-9
-#convert inner2.tif -density 600 -crop 8x12-34-38@\! -shave 20x20 +repage twisthigh%d.tif
+#convert inner1.tif -density 300 -crop 8x12-17-19@\! -shave 10x10 +repage twistlow%d.tif
 
+scanimage -d avision:libusb --batch=batch%d.tif --batch-count=1 --resolution 600 --format=tiff -l 14.5 -x 85 -t 10 -y 125
+convert batch1.tif -density 600 -crop 1634x2502+182+224 inner2.tif
+# this requires at least imagemagick 6.5.8-9
+convert inner2.tif -density 600 -crop 8x12-34-38@\! -shave 20x20 +repage twisthigh%d.tif
+exit 0
 #-density argument added to preserve DPI
 
 # messy file, but it has history!

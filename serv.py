@@ -15,6 +15,26 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 PORT=2233
 from time import localtime, time, sleep
 from datetime import datetime
+from os.path import exists
+from os import stat
+from stat import * 
+
+def getFileFromWell(well):
+    if well[1:].isdigit():
+        well = well.upper()
+        return (ord(well[0])-65)+8*int(well[1:])
+    elif well.find('-') != -1:
+        splitv = '-'
+    elif well.find('_')!= -1:
+        splitv = '_'
+    else:
+        return -1
+
+    w = well.split(splitv)
+    if len(w) == 2:
+        return int(w[0])+8*int(w[1])
+    else:
+        return -1
 
 def modification_date(filename):
     t = path.getmtime(filename)
@@ -58,6 +78,26 @@ class MyHandler(BaseHTTPRequestHandler):
                    wwrite(MyHandler.sc.getStatus())
                else:
                    wwrite("unknown scan command")
+               return
+           elif self.path.startswith("/images/") and self.path.endswith('.jpg'):
+               fn = MyHandler.fileprot%getFileFromWell(self.path[8:-4])
+               print fn
+               if exists(fn):
+                   f = open(fn,"rb")
+                   size = stat(fn)[ST_SIZE]
+
+                   self.send_response(200)
+                   self.send_header('Content-type','image/jpeg')
+                   self.send_header('Content-length',size)
+                   self.end_headers() 
+                   self.wfile.write(f.read())
+                   
+                   f.close()
+               else:
+                   self.send_response(404)
+                   self.send_header('Content-type','text/plain')
+                   self.end_headers() 
+                   wwrite("error: file not found")
                return
            elif self.path.strip('/') == '':
                self.send_response(200)
@@ -117,8 +157,11 @@ def main():
       MyHandler.sc=scan.ScanControl()
       MyHandler.sc.forceRepeat = True
       MyHandler.sc.timeout = 45 #seconds
+      MyHandler.fileprot = MyHandler.sc.myDir+MyHandler.sc.pref+'%s.jpg'
+      
       MyHandler.sc.start()
       
+
       server = HTTPServer(('', PORT), MyHandler)
       print 'started httpserver...'
 
