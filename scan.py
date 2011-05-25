@@ -205,6 +205,7 @@ class ScanControl(threading.Thread):
        self.acquire()
        if self.forceRepeat:
           self.decoded = {}
+          flag = True
        for k,v in output.items():
            self.decoded[k] = [v,strtime(),
                               modification_date(self.dm.myDir+k)]
