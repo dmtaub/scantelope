@@ -34,7 +34,7 @@ class DMDecoder():
 
       n=0
       m=0
-
+      failNum=0
       lastCVTime = 0
       timeForCV = 0
       print "len self.files in decode: ",len(self.files)
@@ -54,10 +54,12 @@ class DMDecoder():
                                                             self.verbose)
           timeForCV += (time() - lastCVTime)
           cv.SaveImage(self.myDir+filename.replace('tif','jpg'),cv_final)
-          for img,name in [#[cv_smoo,"smooth"], #seems to introduce many errors
+
+          test = cv.Avg(cv_final) 
+          if test[0] < 130 and test[0] > 30:   # hard threshold works for avision
+           for img,name in [#[cv_smoo,"smooth"], #seems to introduce many errors
                            [cv_final,"clipped"],
                            [cv_orig,"original"]]:
-
              if is_found:
                 break
 
@@ -103,15 +105,16 @@ class DMDecoder():
     #            how = "Quick Search(2): "+str(name)
     #            is_found = True
     #      out = dmtx_code
-
+          else:
+             failNum+=1
           if is_found:
              n+=1
              self.output[filename] = out
           else:
-             print filename, None
+             #print filename, None
              self.failed.append(filename)
           m+=1
-
+      print failNum, "failed to produce images worth decoding"
       self.status += "\nFound %d of %d in "%(n,m)
 
       self.status += str(time()-self.totalTime)+" seconds.\n"

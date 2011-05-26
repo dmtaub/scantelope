@@ -79,8 +79,8 @@ class MyHandler(BaseHTTPRequestHandler):
                else:
                    wwrite("unknown scan command")
                return
-           elif self.path.startswith("/images/") and self.path.endswith('.jpg'):
-               fn = MyHandler.fileprot%getFileFromWell(self.path[8:-4])
+           elif self.path.startswith("/images") and self.path.endswith('.jpg'):
+               fn = MyHandler.fileprot%getFileFromWell(self.path.split('/')[-1][:-4])
                print fn
                if exists(fn):
                    f = open(fn,"rb")
