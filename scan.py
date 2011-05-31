@@ -36,8 +36,11 @@ def strtime():
    return strftime("%Y-%m-%d %H:%M:%S")
 
 class ScanControl(threading.Thread):
+   listCodes = []
    def __init__(self):
       threading.Thread.__init__(self)
+
+      self.lock = threading.RLock()
 
       if decode.findcode.low_res == True:
           self.res = 300
@@ -50,7 +53,7 @@ class ScanControl(threading.Thread):
       self.isScanning = False
       self.refreshInterval = 1 #in seconds
       self.scanners = [] 
-      self.lock = threading.RLock()
+      
       
       self.setStatus(strtime()+'\ninitialized')
       
@@ -90,13 +93,27 @@ class ScanControl(threading.Thread):
        self.decoded = val
        self.release()
 
+   def getCodes(self):
+       self.acquire()
+       retVal = self.listCodes[:]
+       self.release()
+       return retVal
+
+   def setCodes(self,val):
+       self.acquire()
+       self.listCodes = val
+       self.release()
+
    def getFilenames(self):
+       self.acquire() # ***
+       
        self.pref=pref = defaultfn[0]
        self.myDir = defaultdir
        self.ext = '.'+defaultfn[1]
        
        self.files = [i for i in listdir(self.myDir) if i.find(pref) != -1 and ''.join(i.split(pref)).rstrip(self.ext).isdigit()]
        self.files.sort()
+       self.release() # ***
 
    def getScanners(self):
        self.acquire()
@@ -128,19 +145,27 @@ class ScanControl(threading.Thread):
       self.setDecoded({})
 
    def startScan(self):
+      self.acquire() # ***
       self.refreshInterval = 1
       self.isScanning = True
-      self.setStatus(strtime()+'\nstarted')
       self.dm.__init__()
+      self.release() # ***
+
+      self.setStatus(strtime()+'\nstarted')
+      
 
    def stopScan(self):
+      self.acquire() # ***
       self.isScanning = False
       self.refreshInterval = 2
+      self.release() # ***
       self.setStatus(strtime()+'\nstopped')
 
    def autoStopScan(self):
+      self.acquire() # ***
       self.isScanning = False
       self.refreshInterval = 2
+      self.release() # ***
       self.updateStatus(strtime()+'\nautostopped')
 
    def acquire(self):

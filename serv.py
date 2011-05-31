@@ -10,6 +10,7 @@ import scan
 scan.decode.findcode.low_res = False
 scan.defaultfn[0]='highres'
 
+from SocketServer import ThreadingMixIn
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 PORT=2233
@@ -41,8 +42,14 @@ def modification_date(filename):
     retVal = str(datetime.fromtimestamp(t))
     return retVal.split('.')[0]
 
+
+
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
+
+
 class MyHandler(BaseHTTPRequestHandler):
-   listCodes = []
+   
    def wwrite(self,data,line_break = '<br>'):
       #if line_break != None:
       #   self.wfile.write(data.replace('\n',line_break))
@@ -107,7 +114,7 @@ class MyHandler(BaseHTTPRequestHandler):
 
                decoded = MyHandler.sc.getNewDecoded(MyHandler.lastUpdateTime)
                if decoded == -1:
-                   listCodes = MyHandler.listCodes
+                   listCodes = MyHandler.sc.getCodes() #***
                else:
                    MyHandler.lastUpdateTime = datetime.now()
                    listCodes = decoded.iteritems()
@@ -115,7 +122,7 @@ class MyHandler(BaseHTTPRequestHandler):
                                               x[1][0],x[1][1],x[1][2]),
                                    listCodes)
                    listCodes.sort()
-                   MyHandler.listCodes = listCodes
+                   MyHandler.sc.setCodes(listCodes) #***
                
                for well,code,decTime,modTime in listCodes:
                    wwrite("%s,%s,%s,%s\n"%(well,code,decTime,modTime),None)
@@ -162,7 +169,7 @@ def main():
       MyHandler.sc.start()
       
 
-      server = HTTPServer(('', PORT), MyHandler)
+      server = ThreadingHTTPServer(('', PORT), MyHandler)
       print 'started httpserver...'
 
       running = True
