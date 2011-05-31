@@ -37,10 +37,11 @@ def strtime():
 
 class ScanControl(threading.Thread):
    listCodes = []
-   def __init__(self):
+   def __init__(self,event):
       threading.Thread.__init__(self)
 
       self.lock = threading.RLock()
+      self.event = event
 
       if decode.findcode.low_res == True:
           self.res = 300
@@ -50,10 +51,9 @@ class ScanControl(threading.Thread):
       self.getFilenames()
       self.dm = decode.DMDecoder(self.myDir,self.files)#,res = self.res)
       self.daemon = True #This kills this thread when the main thread stops  
-      self.isScanning = False
-      self.refreshInterval = 1 #in seconds
-      self.scanners = [] 
       
+      self.scanners = [] 
+      self.isScanning = False
       
       self.setStatus(strtime()+'\ninitialized')
       
@@ -61,18 +61,7 @@ class ScanControl(threading.Thread):
       self.setDecoded({})
       self.filetime = ''
       self.mostRecentUpdate = datetime.now()
-      self.timeout = -1
-      self.lastActive = time()
       self.decodeOnly = False
-
-   def resetTimer(self):
-      self.lastActive = time()
-
-   def timeoutExpired(self):
-      if self.timeout == -1:
-         return false
-      else:
-         return abs(time()-self.lastActive) > self.timeout
 
    def getDecoded(self):
        self.acquire()
@@ -139,34 +128,28 @@ class ScanControl(threading.Thread):
 
    def reset(self):
       self.resetDecoded()
+      self.acquire()
       self.dm.__init__(self.myDir,self.files)
+      self.release()
 
    def resetDecoded(self):
       self.setDecoded({})
 
-   def startScan(self):
+   def initScan(self):
       self.acquire() # ***
-      self.refreshInterval = 1
-      self.isScanning = True
       self.dm.__init__()
       self.release() # ***
 
-      self.setStatus(strtime()+'\nstarted')
+      self.setStatus(strtime()+'\ndecoder initialized')
       
 
-   def stopScan(self):
-      self.acquire() # ***
-      self.isScanning = False
-      self.refreshInterval = 2
-      self.release() # ***
-      self.setStatus(strtime()+'\nstopped')
+#   def stopScan(self):
+#      self.setStatus(strtime()+'\nstopped')
 
    def autoStopScan(self):
-      self.acquire() # ***
-      self.isScanning = False
-      self.refreshInterval = 2
-      self.release() # ***
       self.updateStatus(strtime()+'\nautostopped')
+      self.event.clear()
+      
 
    def acquire(self):
       self.lock.acquire()
@@ -241,11 +224,7 @@ class ScanControl(threading.Thread):
            self.mostRecentUpdate = datetime.now()
 
        if self.forceRepeat:
-           if self.timeoutExpired():
-              self.autoStopScan()
-              self.updateStatus("\nTimer has run down\n")
-           else:
-              self.updateStatus("\nscanning forced, repeating...\n")
+           self.updateStatus("\nscanning forced, repeating...\n")
            self.dm.__init__(self.myDir,self.files)
        elif len(failed) == 0:
            self.autoStopScan()
@@ -258,20 +237,31 @@ class ScanControl(threading.Thread):
 
        return output,failed
 
+   def enableScan(self):
+      self.acquire()
+      self.isScanning = True
+      self.release()
+
    def run(self):
        self.findScanners()
        while 1:
-           if self.isScanning and len(self.scanners) > self.whichScanner:
-               self.dm.resettime()
-               self.setStatus(self.getStatus().strip().split('\n')[-1]+'\n'+strtime())
-               
-               self._shellOut()
-               self._doDecode()
-           elif self.decodeOnly:
-               self.dm.resettime()
-               self._doDecode()
-               if not self.forceRepeat:
+          if self.isScanning:
+             self.acquire()
+             self.isScanning = False
+             self.release()
+             if len(self.scanners) > self.whichScanner:
+                self.setStatus(self.getStatus().strip().split('\n')[-1]+'\n'+strtime())
+                self._shellOut()
+                self._doDecode()
+             elif self.decodeOnly:
+                self._doDecode()
+                if not self.forceRepeat:
                    self.decodeOnly = False
-           elif self.scanners == []: # or is scanner error..
-               self.findScanners()
-           sleep(self.refreshInterval) 
+             elif self.scanners == []: # or is scanner error..
+                self.findScanners()
+          else:
+             print "WAIT"
+             self.event.wait()
+             print "DONE WAIT"
+
+          # sleep?

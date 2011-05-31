@@ -5,7 +5,7 @@
 
 #import cgi
 #import pri
-
+import threading
 import scan
 scan.decode.findcode.low_res = False
 scan.defaultfn[0]='highres'
@@ -57,7 +57,8 @@ class MyHandler(BaseHTTPRequestHandler):
          self.wfile.write(data)
 
    def do_GET(self):
-       MyHandler.sc.resetTimer()
+       MyHandler.sc.enableScan()
+       MyHandler.event.set()
        wwrite=self.wwrite
        try:
          #            print self.path
@@ -72,12 +73,11 @@ class MyHandler(BaseHTTPRequestHandler):
                    if MyHandler.sc.getScanners() == []:
                        wwrite("No scanners found, try power cycling the scanner")
                    else:
-#                       sleep(15)
-                       MyHandler.sc.startScan()
+                       MyHandler.sc.initScan()
                        wwrite("scan started")
-               elif self.path.endswith("stop"):
-                   MyHandler.sc.stopScan()
-                   wwrite("scan stopped")
+#               elif self.path.endswith("stop"):
+#                   MyHandler.sc.stopScan()
+#                   wwrite("scan stopped")
                elif self.path.endswith("reset"):
                    MyHandler.sc.reset()
                    wwrite("reset decoded")
@@ -85,7 +85,7 @@ class MyHandler(BaseHTTPRequestHandler):
                    wwrite(MyHandler.sc.getStatus())
                else:
                    wwrite("unknown scan command")
-               return
+
            elif self.path.startswith("/images") and self.path.endswith('.jpg'):
                fn = MyHandler.fileprot%getFileFromWell(self.path.split('/')[-1][:-4])
                print fn
@@ -105,7 +105,7 @@ class MyHandler(BaseHTTPRequestHandler):
                    self.send_header('Content-type','text/plain')
                    self.end_headers() 
                    wwrite("error: file not found")
-               return
+
            elif self.path.strip('/') == '':
                self.send_response(200)
                self.send_header('Content-type','text/plain')
@@ -126,7 +126,7 @@ class MyHandler(BaseHTTPRequestHandler):
                
                for well,code,decTime,modTime in listCodes:
                    wwrite("%s,%s,%s,%s\n"%(well,code,decTime,modTime),None)
-               return
+
            elif self.path.endswith('decode'):
                self.send_response(200)
                self.send_header('Content-type','text/plain')
@@ -135,7 +135,8 @@ class MyHandler(BaseHTTPRequestHandler):
                MyHandler.sc.decodeOnly = True
            else:
                self.send_error(404,'Command/File not found')
-               return
+
+           MyHandler.event.clear()
            return
       
        except IOError:
@@ -159,15 +160,16 @@ class MyHandler(BaseHTTPRequestHandler):
     #         pass
 
 def main():
+
+      MyHandler.event = threading.Event()
+
    
       MyHandler.lastUpdateTime = datetime.now()
-      MyHandler.sc=scan.ScanControl()
+      MyHandler.sc=scan.ScanControl(MyHandler.event)
       MyHandler.sc.forceRepeat = True
-      MyHandler.sc.timeout = 45 #seconds
       MyHandler.fileprot = MyHandler.sc.myDir+MyHandler.sc.pref+'%s.jpg'
       
       MyHandler.sc.start()
-      
 
       server = ThreadingHTTPServer(('', PORT), MyHandler)
       print 'started httpserver...'
