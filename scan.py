@@ -242,7 +242,6 @@ class ScanControl(threading.Thread):
                
                self._shellOut()
                self._doDecode()
-               sleep(self.refreshInterval) 
            elif self.decodeOnly:
                self.dm.resettime()
                self._doDecode()
@@ -250,3 +249,4 @@ class ScanControl(threading.Thread):
                    self.decodeOnly = False
            elif self.scanners == []: # or is scanner error..
                self.findScanners()
+           sleep(self.refreshInterval) 
