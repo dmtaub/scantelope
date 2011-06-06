@@ -5,9 +5,13 @@ from pdb import set_trace as st
 import findcode
 import time
 import cv
-findcode.low_res = False
+findcode.low_res = True
 EXPECTED_LEN = 10
 
+if findcode.low_res:
+  SHRINK = 1
+else:
+  SHRINK = 2
 myDir='/tmp/'
 pref='split'
 ext='.png'
@@ -56,7 +60,7 @@ if __name__ == '__main__':
 
       timeForCV += (time.time() - lastCVTime)
       
-      for img,name in [[cv_smoo,"smooth"],
+      for img,name in [#[cv_smoo,"smooth"],
                        [cv_final,"clipped"],
                        [cv_orig,"original"]]:
         
@@ -65,7 +69,7 @@ if __name__ == '__main__':
         
         dmtx_im = Image.fromstring("L", cv.GetSize(img), img.tostring())
 
-        padding = 0.1
+        padding = 0.2
         ncols,nrows = dmtx_im.size
 
         padw = (ncols)*padding
@@ -78,19 +82,26 @@ if __name__ == '__main__':
         dmtx_image = Image.new('RGB',isize,0)
         bbox = (round(padw),round(padh),ncols+round(padw),nrows+round(padh))
 
-        
+         
         dmtx_image.paste(dmtx_im,bbox)
+# 	dmtx_im.save("/tmp/t1.png")
+#	dmtx_image.save("/tmp/t2.png")
 
-
+#	import pdb;pdb.set_trace()
         (width, height) = dmtx_image.size
-        dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10, shrink = 2)
+        dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10, shrink = SHRINK)
         #dm_read = DataMatrix(max_count = 1, timeout = 300, shape = DataMatrix.DmtxSymbol12x12, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
         dmtx_code = dm_read.decode (width, height, buffer(dmtx_image.tostring()))
 
         if dmtx_code is not None and len(dmtx_code) == EXPECTED_LEN:
             how = "Quick Search: "+str(name)
             is_found = True
-            
+        else:
+          dmtx_im.save("/tmp/t1.png")
+          dmtx_image.save("/tmp/t2.png")
+          #import pdb;pdb.set_trace()
+
+
 
         out = dmtx_code
 

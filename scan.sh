@@ -31,3 +31,19 @@ python process.py 0 /tmp/twistlow.tif
 
 #cat out1 | wc -l
 #cat out2 | wc -l
+
+
+
+## For big scanner:
+
+#!/bin/bash
+
+cd /tmp/
+#scanimage -d hp3900:libusb:002:002 --batch=newlow.tif --batch-count=-1 --resolution 300 --mode Gray -l 45 -t 10 -x 130 -y 275
+convert newlow.tif -density 300 -crop 1250x836+134+82 inner.tif
+#convert newlow.tif -density 300 -crop 1250x836+134+82 inner.tif
+
+# this requires at least imagemagick 6.5.8-9
+#convert inner.tif -crop 8x12-17-19@\! -shave 10x10 -auto-level -blur 1 +repage wells.tif
+convert inner.tif -density 300 -crop 12x8-19-17@\! -shave 10x10 -auto-level +repage well%d.tif
+

@@ -52,7 +52,7 @@ class ScanControl(threading.Thread):
       self.dm = decode.DMDecoder(self.myDir,self.files)#,res = self.res)
       self.daemon = True #This kills this thread when the main thread stops  
       
-      self.scanners = [] 
+      self.scanners = {} 
       self.isScanning = False
       
       self.setStatus(strtime()+'\ninitialized')
@@ -62,6 +62,16 @@ class ScanControl(threading.Thread):
       self.filetime = ''
       self.mostRecentUpdate = datetime.now()
       self.decodeOnly = False
+
+   def useScanner(self,w):
+      self.acquire()
+      if len(self.scanners) > w and w >= 0:
+         self.whichScanner = w
+         ret = True
+      else:
+         ret = False
+      self.release()
+      return ret
 
    def getDecoded(self):
        self.acquire()
@@ -105,8 +115,9 @@ class ScanControl(threading.Thread):
        self.release() # ***
 
    def getScanners(self):
+       #self.findScanners()
        self.acquire()
-       retVal = self.scanners[:]
+       retVal = self.scanners#.values()
        self.release()
        return retVal
 
@@ -165,7 +176,7 @@ class ScanControl(threading.Thread):
        else:
            scanners = out.strip().split()
            scanners = filter(lambda x: x[:3] == 'net',scanners)
-       
+           scanners = dict(zip(range(len(scanners)),scanners))
        self.acquire()
        self.scanners = scanners
        self.release()
@@ -244,12 +255,13 @@ class ScanControl(threading.Thread):
 
    def run(self):
        self.findScanners()
+       origNumScanners = len(self.scanners)
        while 1:
           if self.isScanning:
              self.acquire()
              self.isScanning = False
              self.release()
-             if len(self.scanners) > self.whichScanner:
+             if self.scanners.has_key(self.whichScanner):
                 self.setStatus(self.getStatus().strip().split('\n')[-1]+'\n'+strtime())
                 self._shellOut()
                 self._doDecode()
@@ -257,8 +269,9 @@ class ScanControl(threading.Thread):
                 self._doDecode()
                 if not self.forceRepeat:
                    self.decodeOnly = False
-             elif self.scanners == []: # or is scanner error..
-                self.findScanners()
+             elif len(self.scanners) < origNumScanners:
+                self.findScanners() #look if disconnected
+                #maybe limit to looking 5 times and then wait 100-200 times before trying again
           else:
              print "WAIT"
              self.event.wait()

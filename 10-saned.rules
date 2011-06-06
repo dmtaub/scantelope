@@ -1,3 +1,4 @@
 # this file goes into /etc/udev/rules.d/
 
 SUBSYSTEM=="usb", ATTRS{idProduct}=="0a7f", ATTRS{idVendor}=="0638", GROUP="scanner", MODE="0664", ENV{libsane_matched}="yes"
+SUBSYSTEM=="usb", ATTRS{idProduct}=="4205", ATTRS{idVendor}=="03f0", GROUP="scanner", MODE="0664", ENV{libsane_matched}="yes"

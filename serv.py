@@ -48,6 +48,11 @@ class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     pass
 
 
+def resetTimer(): 
+    MyHandler.sc.enableScan()
+    MyHandler.event.set()
+      
+
 class MyHandler(BaseHTTPRequestHandler):
    
    def wwrite(self,data,line_break = '<br>'):
@@ -57,8 +62,7 @@ class MyHandler(BaseHTTPRequestHandler):
          self.wfile.write(data)
 
    def do_GET(self):
-       MyHandler.sc.enableScan()
-       MyHandler.event.set()
+       resetTimer()
        wwrite=self.wwrite
        try:
          #            print self.path
@@ -67,10 +71,17 @@ class MyHandler(BaseHTTPRequestHandler):
                self.send_header('Content-type','text/plain')
                self.end_headers() 
                if self.path.endswith("list"):
-                   l='\n'.join(MyHandler.sc.getScanners())
-                   wwrite("scanners:\n%s"%l)
+                   l='\n'.join(MyHandler.sc.getScanners().values())
+#                   wwrite("scanners:\n%s"%l)
+                   wwrite(l)
+               elif self.path[6:12] == "select":
+                   which = self.path[12:].strip('/')
+                   if which.isdigit() and MyHandler.sc.useScanner(int(which)):
+                       wwrite("selected scanner "+which)
+                   else:
+                       wwrite("invalid scanner index")
                elif self.path.endswith("start"):
-                   if MyHandler.sc.getScanners() == []:
+                   if MyHandler.sc.getScanners() == {}:
                        wwrite("No scanners found, try power cycling the scanner")
                    else:
                        MyHandler.sc.initScan()
