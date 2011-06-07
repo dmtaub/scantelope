@@ -7,8 +7,8 @@
 #import pri
 import threading
 import scan
-scan.decode.findcode.low_res = False
-scan.defaultfn[0]='highres'
+#scan.decode.findcode.low_res = False
+#scan.defaultfn[0]='highres'
 
 from SocketServer import ThreadingMixIn
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -20,22 +20,6 @@ from os.path import exists
 from os import stat
 from stat import * 
 
-def getFileFromWell(well):
-    if well[1:].isdigit():
-        well = well.upper()
-        return (ord(well[0])-65)+8*int(well[1:])
-    elif well.find('-') != -1:
-        splitv = '-'
-    elif well.find('_')!= -1:
-        splitv = '_'
-    else:
-        return -1
-
-    w = well.split(splitv)
-    if len(w) == 2:
-        return int(w[0])+8*int(w[1])
-    else:
-        return -1
 
 def modification_date(filename):
     t = path.getmtime(filename)
@@ -76,16 +60,22 @@ class MyHandler(BaseHTTPRequestHandler):
                    wwrite(l)
                elif self.path[6:12] == "select":
                    which = self.path[12:].strip('/')
-                   if which.isdigit() and MyHandler.sc.useScanner(int(which)):
+                   if which.isdigit() and MyHandler.sc.setNextScanner(int(which)):
                        wwrite("selected scanner "+which)
                    else:
                        wwrite("invalid scanner index")
-               elif self.path.endswith("start"):
-                   if MyHandler.sc.getScanners() == {}:
-                       wwrite("No scanners found, try power cycling the scanner")
+               elif self.path[6:12] == "setres":
+                   which = self.path[12:].strip('/')
+                   if which.isdigit() and MyHandler.sc.setNextRes(int(which)):
+                       wwrite("selected resolution "+which)
                    else:
-                       MyHandler.sc.initScan()
-                       wwrite("scan started")
+                       wwrite("invalid resolution")
+#               elif self.path.endswith("start"):
+#                   if MyHandler.sc.getScanners() == {}:
+#                       wwrite("No scanners found, try power cycling the scanner")
+#                   else:
+#                       MyHandler.sc.initScan()
+#                       wwrite("scan started")
 #               elif self.path.endswith("stop"):
 #                   MyHandler.sc.stopScan()
 #                   wwrite("scan stopped")
@@ -98,7 +88,7 @@ class MyHandler(BaseHTTPRequestHandler):
                    wwrite("unknown scan command")
 
            elif self.path.startswith("/images") and self.path.endswith('.jpg'):
-               fn = MyHandler.fileprot%getFileFromWell(self.path.split('/')[-1][:-4])
+               fn = MyHandler.fileprot%scan.getFileFromWell(self.path.split('/')[-1][:-4])
                print fn
                if exists(fn):
                    f = open(fn,"rb")

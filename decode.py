@@ -38,6 +38,9 @@ class DMDecoder():
       lastCVTime = 0
       timeForCV = 0
       print "len self.files in decode: ",len(self.files)
+      stop = False
+#      import pdb;pdb.set_trace()
+      
       for filename in self.files:
 
           is_found = False    
@@ -56,7 +59,9 @@ class DMDecoder():
           cv.SaveImage(self.myDir+filename.replace('tif','jpg'),cv_final)
 
           test = cv.Avg(cv_final) 
-          if test[0] < 130 and test[0] > 30:   # hard threshold works for avision
+          if stop == True:
+             pdb.set_trace()
+          if test[0] < 130 and test[0] > 45:   # hard threshold works for avision
            for img,name in [#[cv_smoo,"smooth"], #seems to introduce many errors
                            [cv_final,"clipped"],
                            [cv_orig,"original"]]:
@@ -111,7 +116,7 @@ class DMDecoder():
              n+=1
              self.output[filename] = out
           else:
-             #print filename, None
+             print filename, None, test[0]
              self.failed.append(filename)
           m+=1
       print failNum, "failed to produce images worth decoding"
