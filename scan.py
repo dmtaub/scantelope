@@ -143,19 +143,18 @@ class ScanControl(threading.Thread):
       self.acquire()
       if self.nextRes!= None:
          self.res = self.nextRes
+         if self.res == 300:
+            low_res = True
+         else:
+            low_res = False
+         decode.findcode.low_res = low_res         
          self.nextRes = None
       self.release()
 
    def setNextRes(self,res):
 
       if res in [300,600]:
-         if res == 300:
-            low_res = True
-         else:
-            low_res = False
-         
          self.acquire()
-         decode.findcode.low_res = low_res
          self.nextRes = res
          self.release()
          return True
