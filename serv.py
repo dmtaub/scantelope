@@ -1,12 +1,18 @@
 #!/usr/bin/python
 # Server for decoded DM -- Daniel Taub, dmtaub.com
 # Server based on code from Jon Berg , turtlemeat.com
+#
+# API: /scan/status             show current server settings and most recent log message
+#      /scan/list               list available scanners
+#      /scan/select/{0,1...n}   select scanner from list 
+#      /scan/setres/{600|300}   select resolution 
+#      /                        CSV of most-recently decoded 
+#      /images/n_m.jpg          image from row n (0-7) and column m (0-11)
+#
 
-
-#import cgi
-#import pri
 import threading
 import scan
+
 #scan.decode.findcode.low_res = False
 #scan.defaultfn[0]='highres'
 
