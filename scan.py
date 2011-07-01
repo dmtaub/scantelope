@@ -3,9 +3,9 @@
 # Copyright (c) 2011 Ginkgo Bioworks Inc.
 # Copyright (c) 2011 Daniel Taub
 #
-# This file is part of DMTube.
+# This file is part of Scantelope.
 #
-# DMTube is free software: you can redistribute it and/or modify
+# Scantelope is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
@@ -18,7 +18,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-scan module for Lab Server DMTube.
+Scanner interface module for Scantelope.
 
 """
 
@@ -87,6 +87,7 @@ def modification_date(filename):
 def strtime():
    return strftime("%Y-%m-%d %H:%M:%S")
 
+# eventually pull this into a separate configuration file
 class CONFIG():
    data={'avision-600':['-crop 1634x2502+182+224',
                         '-crop 8x12-34-38@! -shave 20x20',
@@ -330,12 +331,12 @@ class ScanControl(threading.Thread):
          print "using first listed configuration for %s"%sn
          ok = [i for i in CONFIG.keys() if i.find(sn) != -1]
          if i == []:
-            print "no Luck"
+            print "no luck finding that scanner"
             import pdb;pdb.set_trace()
          else:
             cfg = CONFIG.switch(ok[0])
             self.setNextRes(int(ok[0].split('-')[-1]))
-      print cfg
+      #print cfg
       density = "-density %d "%self.res
       return cfg+[density]
 
@@ -397,7 +398,7 @@ class ScanControl(threading.Thread):
            self.dm.__init__(self.myDir,self.files)
        else:
            self.updateStatus("\nkeep looking...\n")
-           print failed
+           #print failed
            self.dm.__init__(files=failed)
 
        return output,failed

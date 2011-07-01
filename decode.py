@@ -2,9 +2,9 @@
 # Copyright (c) 2011 Ginkgo Bioworks Inc.
 # Copyright (c) 2011 Daniel Taub
 #
-# This file is part of DMTube.
+# This file is part of Scantelope.
 #
-# DMTube is free software: you can redistribute it and/or modify
+# Scantelope is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
@@ -17,7 +17,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-decode module for Lab Server DMTube.
+Data matrix decoding module for Scantelope.
 
 """
 #from os import curdir, sep, path
@@ -59,7 +59,7 @@ class DMDecoder():
       failNum=0
       lastCVTime = 0
       timeForCV = 0
-      print "len self.files in decode: ",len(self.files)
+      print "Files to decode: ",len(self.files)
       stop = False
 #      import pdb;pdb.set_trace()
       
@@ -137,11 +137,13 @@ class DMDecoder():
           if is_found:
              n+=1
              self.output[filename] = out
+             #print filename, out, test[0]
           else:
-             print filename, None, test[0]
+             #print filename, None, test[0]
              self.failed.append(filename)
           m+=1
       print failNum, "failed to produce images worth decoding"
+      print n,"of the",m-failNum,"remaining were successfully decoded."
       self.status += "\nFound %d of %d in "%(n,m)
 
       self.status += str(time()-self.totalTime)+" seconds.\n"
