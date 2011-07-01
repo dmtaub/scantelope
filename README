@@ -1,12 +1,14 @@
-DMTube Lab Server provides test tube decoding and data retrieval and is for
+DMTube provides test tube decoding and data retrieval and is for
 use with a couple of specially-modified scanners (including the Avision AVA6 Plus). 
+
+LICENSE:
 
 Copyright (c) 2011 Ginkgo Bioworks Inc.
 Copyright (c) 2011 Daniel M Taub
 
-This file is part of Lab Server DMTube.
+This file is part of DMTube.
 
-Lab Server DMTube is free software: you can redistribute it and/or modify
+DMTube is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
@@ -20,11 +22,33 @@ Lab Server DMTube is free software: you can redistribute it and/or modify
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+DEPENDENCIES: 
+  Python 2.6 			  
+  OpenCV and new python wrapper - module named "cv"
+   http://sourceforge.net/projects/opencvlibrary/
+  libdmtx and python wrapper -module named "pydmtx"
+   http://www.libdmtx.org/
+  sane 
+   http://www.sane-project.org/
 
-Server for decoded DM -- Daniel Taub, dmtaub.com
- API: /scan/status             show current server settings and most recent log message
+INSTALLATION:
+  0) install all dependencies
+  1) install sane drivers
+  2) set up permissions (10-saned.rules)
+    test scanner is recognized with 'scanimage -L'
+  3) run 'python serv.py' (or test.py for test)
+  4) browse to http://localhost:2233/scan/status
+
+
+INTERFACE:
+    http://localhost:2233{command}
+
+replace {command} with:       in order to:
+
+      /scan/status             show current settings and recent log messages
       /scan/list               list available scanners
       /scan/select/{0,1...n}   select scanner from list 
       /scan/setres/{600|300}   select resolution 
-      /                        CSV of most-recently decoded 
-      /images/n_m.jpg          image from row n (0-7) and column m (0-11)
+      /                        view CSV of most-recently decoded 
+      /images/n_m.jpg          view image from row n (0-7) column m (0-11)
+

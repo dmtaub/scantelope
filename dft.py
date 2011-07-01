@@ -1,4 +1,7 @@
 #!/usr/bin/python
+#
+# this file is based on example code from the openCV project http://opencv.willowgarage.com/
+#
 import cv
 import sys
 
