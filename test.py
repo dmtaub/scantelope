@@ -1,22 +1,64 @@
 #!/usr/bin/python
+#
+# Copyright (c) 2011 Ginkgo Bioworks Inc.
+# Copyright (c) 2011 Daniel Taub
+#
+# This file is part of Lab Server DMTube.
+#
+# Lab Server DMTube is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+test module for Lab Server DMTube.
+
+"""
 
 import scan
 from datetime import datetime
 from time import sleep
+import threading
 
-#magic setting for low res (300dpi) vs high (600)
-scan.decode.findcode.low_res = False
+scanEvent = threading.Event()
 
-sc= scan.ScanControl()
+MaxReps = 10
+
+sc= scan.ScanControl(scanEvent)
+
+#supports low res (300) or high (600) (in dpi)
+sc.setNextRes(600)
+sc.setResFromNext()
+
+# if true, clears decoded before repeating
+# if false, attempts to exhaustively decode the wells
 sc.forceRepeat = True
-#sc.decodeOnly = True
+
+# do not actually scan, but use images from most recent
+#decodeOnly = True
+
+sc.enableScan()
 sc.start()
-sc.startScan()
-sc.refreshInterval = 2
-updateFromImages = False
+
+# each time set, allows a waiting scan to proceed
+scanEvent.set() 
+
+# If false, compare each decoding to 'comp' below
+# updateFromImages = False
+# If true, this allows decoding to the 'correct' decoding to be updated,
+# testing for consistency across scans instead of a fixed correctness
+updateFromImages = True
+
 lastt = datetime.now()
 out = {}
-f=open('/home/dmt/testing3.txt','a')
+f=open('dmLog.txt','a')
 
 comp = '''TUBE,BARCODE,STATUS
 A01,1013784893,OK
@@ -122,14 +164,25 @@ if not updateFromImages:
         a,b,c = line.split(',')
         out[a] = b
 
-while 1:
+notDone = True
+
+while notDone:
     sleep(2)
+
     d = sc.getNewDecoded(lastt)
+
     if d == -1:
         continue
     else:
-        print 
+        MaxReps -= 1
+        if MaxReps < 0:
+            notDone = False
+        scanEvent.set()
+        #sc.enableScan()
         lastt=datetime.now()
+
+    # maybe create set of keys in out and remove entries through loop, adding 
+    # compliment to log from else after loop
     for k,v in d.items():
         #import pdb;pdb.set_trace()
         v0 = v[0]
@@ -137,13 +190,13 @@ while 1:
 
         if out.has_key(k):
             if out[k] != v0:
-                f.write("%s current: %s != %s at %s\n"%(k,
-                                                        v0,out[k],
-                                                        scan.strtime()))
+                f.write("%s current: %s != %s at %s\n"%(k,v0,out[k],scan.strtime()))
                 f.flush()
                 if updateFromImages:
                     out[k] = v0
             else:
                 pass#print v[0]
         else:
-            out[k] = v[0]
+            f.write("%s no value setting = %s at %s\n"%(k,v0,scan.strtime()))
+            f.flush()
+            out[k] = v0

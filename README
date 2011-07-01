@@ -1,0 +1,30 @@
+DMTube Lab Server provides test tube decoding and data retrieval and is for
+use with a couple of specially-modified scanners (including the Avision AVA6 Plus). 
+
+Copyright (c) 2011 Ginkgo Bioworks Inc.
+Copyright (c) 2011 Daniel M Taub
+
+This file is part of Lab Server DMTube.
+
+Lab Server DMTube is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+
+Server for decoded DM -- Daniel Taub, dmtaub.com
+ API: /scan/status             show current server settings and most recent log message
+      /scan/list               list available scanners
+      /scan/select/{0,1...n}   select scanner from list 
+      /scan/setres/{600|300}   select resolution 
+      /                        CSV of most-recently decoded 
+      /images/n_m.jpg          image from row n (0-7) and column m (0-11)

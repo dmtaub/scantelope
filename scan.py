@@ -1,4 +1,26 @@
 #!/usr/bin/python
+#
+# Copyright (c) 2011 Ginkgo Bioworks Inc.
+# Copyright (c) 2011 Daniel Taub
+#
+# This file is part of Lab Server DMTube.
+#
+#Lab Server DMTube is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+scan module for Lab Server DMTube.
+
+"""
 
 from os import path, listdir
 #import pri
@@ -272,7 +294,7 @@ class ScanControl(threading.Thread):
 
    def autoStopScan(self):
       self.updateStatus(strtime()+'\nautostopped')
-      self.event.clear()
+      self.isScanning = False #event.clear()
       
 
    def acquire(self):
@@ -390,9 +412,9 @@ class ScanControl(threading.Thread):
        origNumScanners = len(self.scanners)
        while 1:
           if self.isScanning:
-             self.acquire()
-             self.isScanning = False
-             self.release()
+             #self.acquire()
+             #self.isScanning = False
+             #self.release()
              if self.scanners.has_key(self.whichScanner):
                 self.setStatus(self.getStatus().strip().split('\n')[-1]+'\n'+strtime())
                 self._shellOut()
@@ -404,9 +426,11 @@ class ScanControl(threading.Thread):
              elif len(self.scanners) < origNumScanners:
                 self.findScanners() #look if disconnected
                 #maybe limit to looking 5 times and then wait 100-200 times before trying again
-          else:
              print "WAIT"
-             self.event.wait()
+             self.event.wait()          
              print "DONE WAIT"
 
+          else:
+             self.event.clear()
+             
           # sleep?

@@ -1,7 +1,5 @@
 #!/usr/bin/python
 import cv
-#from opencv.cv import *
-#from opencv.highgui import *
 import sys
 
 # Rearrange the quadrants of Fourier image so that the origin is at

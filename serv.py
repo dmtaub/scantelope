@@ -1,20 +1,41 @@
 #!/usr/bin/python
-# Server for decoded DM -- Daniel Taub, dmtaub.com
-# Server based on code from Jon Berg , turtlemeat.com
 #
-# API: /scan/status             show current server settings and most recent log message
-#      /scan/list               list available scanners
-#      /scan/select/{0,1...n}   select scanner from list 
-#      /scan/setres/{600|300}   select resolution 
-#      /                        CSV of most-recently decoded 
-#      /images/n_m.jpg          image from row n (0-7) and column m (0-11)
+# Copyright (c) 2011 Ginkgo Bioworks Inc.
+# Copyright (c) 2011 Daniel Taub
 #
+# This file is part of Lab Server DMTube.
+#
+# Lab Server DMTube is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+Server module for Lab Server DMTube.
+This is the main application module.
+
+INTERFACE:
+    http://localhost:2233{command}
+
+replace {command} with:       in order to:
+
+      /scan/status             show current server settings and most recent log message
+      /scan/list               list available scanners
+      /scan/select/{0,1...n}   select scanner from list 
+      /scan/setres/{600|300}   select resolution 
+      /                        view CSV of most-recently decoded 
+      /images/n_m.jpg          view image from row n (0-7) and column m (0-11)
+"""
 
 import threading
 import scan
-
-#scan.decode.findcode.low_res = False
-#scan.defaultfn[0]='highres'
 
 from SocketServer import ThreadingMixIn
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -45,24 +66,22 @@ def resetTimer():
 
 class MyHandler(BaseHTTPRequestHandler):
    
-   def wwrite(self,data,line_break = '<br>'):
-      #if line_break != None:
-      #   self.wfile.write(data.replace('\n',line_break))
-      #else:
+   def wwrite(self,data,line_break = None):
+      if line_break != None:
+         self.wfile.write(data + line_break) # could be <br> or \n
+      else:
          self.wfile.write(data)
 
    def do_GET(self):
        resetTimer()
        wwrite=self.wwrite
        try:
-         #            print self.path
            if self.path.startswith("/scan/"):
                self.send_response(200)
                self.send_header('Content-type','text/plain')
                self.end_headers() 
                if self.path.endswith("list"):
                    l='\n'.join(MyHandler.sc.getScanners().values())
-#                   wwrite("scanners:\n%s"%l)
                    wwrite(l)
                elif self.path[6:12] == "select":
                    which = self.path[12:].strip('/')
@@ -76,15 +95,6 @@ class MyHandler(BaseHTTPRequestHandler):
                        wwrite("selected resolution "+which)
                    else:
                        wwrite("invalid resolution")
-#               elif self.path.endswith("start"):
-#                   if MyHandler.sc.getScanners() == {}:
-#                       wwrite("No scanners found, try power cycling the scanner")
-#                   else:
-#                       MyHandler.sc.initScan()
-#                       wwrite("scan started")
-#               elif self.path.endswith("stop"):
-#                   MyHandler.sc.stopScan()
-#                   wwrite("scan stopped")
                elif self.path.endswith("reset"):
                    MyHandler.sc.reset()
                    wwrite("reset decoded")
@@ -117,7 +127,7 @@ class MyHandler(BaseHTTPRequestHandler):
                self.send_response(200)
                self.send_header('Content-type','text/plain')
                self.end_headers()
-               wwrite("TUBE,BARCODE,DECODE_TIME,FILEMOD_TIME\n",None)
+               wwrite("TUBE,BARCODE,DECODE_TIME,FILEMOD_TIME\n")
 
                decoded = MyHandler.sc.getNewDecoded(MyHandler.lastUpdateTime)
                if decoded == -1:
@@ -132,7 +142,7 @@ class MyHandler(BaseHTTPRequestHandler):
                    MyHandler.sc.setCodes(listCodes) #***
                
                for well,code,decTime,modTime in listCodes:
-                   wwrite("%s,%s,%s,%s\n"%(well,code,decTime,modTime),None)
+                   wwrite("%s,%s,%s,%s\n"%(well,code,decTime,modTime))
 
            elif self.path.endswith('decode'):
                self.send_response(200)
@@ -148,7 +158,9 @@ class MyHandler(BaseHTTPRequestHandler):
       
        except IOError:
            self.send_error(404,'File Not Found: %s' % self.path)
-          
+
+    ## in case post is needed, use the following (from Jon Berg , turtlemeat.com)
+    #
     # def do_POST(self):
     #     global rootnode
     #     try:

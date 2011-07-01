@@ -1,5 +1,4 @@
 #!/bin/bash
-#dmtxread=/home/dmt/devel/libdmtx-utils/dmtxread/dmtxread
 
 cd /tmp/
 #scanimage -d net:localhost:avision:libusb --batch=batch%d.tif --batch-count=1 --resolution 300 --format=tiff -l 14.5 -x 85 -t 10 -y 125

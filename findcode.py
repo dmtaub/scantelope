@@ -1,7 +1,27 @@
 #!/usr/bin/python
-# This works as a standalone program. 
-# Pass an image name as a first parameter of the program.
-
+# 
+# Copyright (c) 2011 Ginkgo Bioworks Inc.
+# Copyright (c) 2011 Daniel Taub
+#
+# This file is part of Lab Server DMTube.
+#
+# Lab Server DMTube is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+'search and decode' module for Lab Server DMTube.
+  This works as a standalone program. 
+ Pass an image name as a first parameter of the program.
+"""
 # has some manual settings for lowres:
 low_res = True
 
@@ -9,8 +29,7 @@ from numpy import array, zeros, arange
 import sys,os
 from math import sin,cos,sqrt, atan, degrees,e
 import cv
-#from opencv.cv. import *
-#from opencv.highgui import *
+
 from dft import getDFT
 import pydmtx
 from pdb import set_trace as st
@@ -19,6 +38,7 @@ white = cv.CV_RGB(255,255,255)
 black = cv.CV_RGB(0,0,0)
 gray = cv.CV_RGB(126,126,126)
 
+# to use plotting for a given image, do this anywhere where there's an image: 
 #     exec interactive('plot3d(rotated2)')
 def plot3d(r):
     from matplotlib.pyplot import figure
@@ -74,8 +94,6 @@ class ToDisplay:
             nch = 1
         else:
             nch = img.nChannels
-
-        
 
         copy_img = cv.CreateImage( cv.GetSize(img), depth, nch );
         cv.Copy(img,copy_img)
