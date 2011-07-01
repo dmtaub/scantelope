@@ -38,6 +38,7 @@ FILES:
   drivers/                    contains drivers for sane
   10-saned.rules              udev rules file for Avision scanner to allow 
                    running the software as any user in the 'scanner' group     
+  *                           other files are subroutines, supporting files, etc
 
 INSTALLATION:
 (quick guide)
