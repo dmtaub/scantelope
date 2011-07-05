@@ -22,7 +22,8 @@ Scantelope is free software: you can redistribute it and/or modify
 DEPENDENCIES: 
   Python 2.x where x = 6 or greater
   Imagemagick 6.5.8-9 or greater
-  OpenCV 2.1 + and python wrapper - module named "cv"
+   http://www.imagemagick.org/
+  OpenCV 2.2 + and python wrapper - module named "cv"
    http://sourceforge.net/projects/opencvlibrary/
   libdmtx and python wrapper -module named "pydmtx"
    http://www.libdmtx.org/
@@ -41,25 +42,35 @@ FILES:
   *                           other files are subroutines, supporting files, etc
 
 INSTALLATION:
- * see install.sh for an example installation on a debian-based (ubuntu, mint, etc) system
- may run this as user with sudo access, but make sure to change the SCANUSER and ARCH variables
- needs sufficient space in /tmp or change directory, but make sure to delete directories after install
- may need to unplug-replug scanner after driver installation and login may be required to access scanner
+ NOTE: install.sh is an installation script for a debian-based (ubuntu, mint, etc) system.
+ You may run this as user with sudo access, but make sure to check the SCANUSER and ARCH variables.
+ WARNING: this script will replace your libsane-avision drivers with binary drivers from the manufacturer.
+ The default behavior creates the 'scanner' group and adds the current user to said group. 
+ ARCH defaults to 'i386' but 'amd64' and 'arm' are also valid. The script requires a good amount of space 
+ in /tmp or you can change the directory/comment out the 'cd' call. Feel free to delete installation 
+ directories after install. Before the scanner will work, after installing new drivers, it may be necessary
+ to unplug-replug the scanner and/or relogin before running serv.py.
 
-(quick guide)
   0) install all dependencies
+    a) required packages: cmake python-numpy g++ python-dev git-core autoconf automake libtool sane
+    b) ImageMagic-6.5.8-9 or later
+    c) OpenCV 2.2 or later
+    d) libdmtx and dmtx-wrappers/python
+  
   1) install sane drivers
-  2) set up permissions as per 10-saned.rules 
-test with 'scanimage -L'
-  3) run 'python serv.py' (or test.py for test)
-  4) browse to http://localhost:2233/scan/status
+  2) create 'scanner' group and add chosen user(s) to it
+  3) set up udev permissions 10-saned.rules 
+
+  - test scanner visibility with 'scanimage -L'
+  - run 'python serv.py' (or test.py for test)
+  - browse to http://localhost:2233/scan/status
 
 
 INTERFACE:
-(http API)
+ (http API)
     http://localhost:2233{command}
 
-replace {command} with:       in order to:
+ replace {command} with:       in order to:
       /                        view CSV of most-recently decoded 
       /scan/list               list available scanners
       /scan/status             show current settings and recent log messages
@@ -67,19 +78,19 @@ replace {command} with:       in order to:
       /scan/setres/{600|300}   select resolution  (default 600 )
       /images/n_m.jpg          view image from row n (0-7) column m (0-11)
 
-The scanning should start on first http access, and will stop automatically 
+ The scanning should start on first http access, and will stop automatically 
 
 
 SUPPORTED SCANNERS:
 
-Scantelope will not work with just any scanner. Since the label of a matrix 
-tube generally sits above the surface of the flatbed, it requires a scanner
-with a large depth-of-field to work properly.
+ Scantelope will not work with just any scanner. Since the label of a matrix 
+ tube generally sits above the surface of the flatbed, it requires a scanner
+ with a large depth-of-field to work properly.
 
-For this reason, we recommend the Avision AVA6 Plus and have included the 
-binary sane drivers as well as a schematic describing the jig we use to 
-position the rack on the bed. You can build your own, but may need to tweak
-the values in the CONFIG class of the scan.py module. 
+ For this reason, we recommend the Avision AVA6 Plus and have included the 
+ binary sane drivers as well as a schematic describing the jig we use to 
+ position the rack on the bed. You can build your own, but may need to tweak
+ the values in the CONFIG class of the scan.py module. 
 
-There is also limited support for the hp3900 which we do not intend to 
-expand at this time.
+ There is also limited support for the hp3900 which we do not intend to 
+ expand at this time.
