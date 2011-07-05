@@ -309,14 +309,20 @@ class ScanControl(threading.Thread):
        if out == '':
            scanners = []
        else:
-           scanners = out.strip().split()
-           scanners = filter(lambda x: x[:3] == 'net',scanners)
+           scanners = out.strip().split(':')
+           # look for network sane scanners first, or default to local
+           ss = filter(lambda x: x[:3] == 'net',scanners)
+           if not ss:
+               idx = 0
+           else:
+               scanners = ss
+               idx = 2
            scannerIds = dict(zip(range(len(scanners)),scanners))
            scannerNames = dict(zip(range(len(scanners)),
-                                   map(lambda x: x.split(':')[2],scanners)))  
+                                   map(lambda x: x.split(':')[idx],scanners)))  
            self.acquire()
            self.scanners = scannerIds
-           self.scannerNames = scannerNames
+           self.scannerNames = scannerNames or self.scannerNames
            self.release()
    
    def configByScanner(self):   
