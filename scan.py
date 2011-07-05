@@ -306,7 +306,6 @@ class ScanControl(threading.Thread):
    def findScanners(self):
        proc=Popen(['scanimage',"-f","%d%n"],stdout=PIPE)
        out, err = proc.communicate()
-       
        if out == '':
            scanners = []
        else:
@@ -315,10 +314,10 @@ class ScanControl(threading.Thread):
            scannerIds = dict(zip(range(len(scanners)),scanners))
            scannerNames = dict(zip(range(len(scanners)),
                                    map(lambda x: x.split(':')[2],scanners)))  
-       self.acquire()
-       self.scanners = scannerIds
-       self.scannerNames = scannerNames
-       self.release()
+           self.acquire()
+           self.scanners = scannerIds
+           self.scannerNames = scannerNames
+           self.release()
    
    def configByScanner(self):   
       sn = self.scannerNames[self.whichScanner]
@@ -431,7 +430,7 @@ class ScanControl(threading.Thread):
              self.event.wait()          
              print "DONE WAIT"
 
-          else:
+#          else:
              self.event.clear()
              
           # sleep?

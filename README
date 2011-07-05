@@ -41,6 +41,11 @@ FILES:
   *                           other files are subroutines, supporting files, etc
 
 INSTALLATION:
+ * see install.sh for an example installation on a debian-based (ubuntu, mint, etc) system
+ may run this as user with sudo access, but make sure to change the SCANUSER and ARCH variables
+ needs sufficient space in /tmp or change directory, but make sure to delete directories after install
+ may need to unplug-replug scanner after driver installation and login may be required to access scanner
+
 (quick guide)
   0) install all dependencies
   1) install sane drivers
