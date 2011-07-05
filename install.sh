@@ -4,7 +4,7 @@
 ARCH=i386
 SCANUSER=`/usr/bin/whoami`
 
-sudo apt-get install -y --force-yes cmake python-numpy g++ python-dev git-core autoconf automake libtool sane libtiff4
+sudo apt-get install -y --force-yes cmake python-numpy g++ python-dev git-core autoconf automake libtool sane libtiff4-dev
 
 cd /tmp
 mkdir dm
