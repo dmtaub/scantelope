@@ -13,7 +13,7 @@ mkdir dm
 cd dm
 
 # 0) INSTALL DEPENDENCIES
-sudo apt-get install -y --force-yes cmake python-numpy g++ python2.6-dev git-core autoconf automake libtool sane
+sudo apt-get install -y --force-yes cmake python-numpy g++ python2.6-dev git-core autoconf automake libtool sane libtiff4-dev
 
 # 0a IMAGEMAGIC  6.5.8-9 or later:
 wget ftp://ftp.imagemagick.org/pub/ImageMagick/ImageMagick-6.7.0-10.tar.gz 
@@ -68,8 +68,11 @@ mkdir m4
 ./configure
 make
 sudo make install
+cd python
+make
+sudo make install
 sudo /sbin/ldconfig /usr/local/lib
-cd ..
+cd ../..
 
 # optional for command-line datamatrix tools:
 # git clone git://libdmtx.git.sourceforge.net/gitroot/libdmtx/dmtx-utils
