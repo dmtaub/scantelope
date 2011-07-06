@@ -286,7 +286,7 @@ class ScanControl(threading.Thread):
       self.acquire() # ***
       self.dm.__init__()
       self.release() # ***
-
+      print "legacy code reached"
       self.setStatus(strtime()+'\ndecoder initialized')
       
 
@@ -309,7 +309,7 @@ class ScanControl(threading.Thread):
        if out == '':
            scanners = []
        else:
-           scanners = out.strip().split(':')
+           scanners = out.strip().split()
            # look for network sane scanners first, or default to local
            ss = filter(lambda x: x[:3] == 'net',scanners)
            if not ss:
@@ -422,7 +422,7 @@ class ScanControl(threading.Thread):
              #self.isScanning = False
              #self.release()
              if self.scanners.has_key(self.whichScanner):
-                self.setStatus(self.getStatus().strip().split('\n')[-1]+'\n'+strtime())
+                self.setStatus('\n'.join(self.getStatus().strip().split('\n')[-10:])+strtime())
                 self._shellOut()
                 self._doDecode()
              elif self.decodeOnly:
