@@ -49,4 +49,10 @@ adduser saned scanner
 cp 10-saned.rules /etc/udev/rules.d/
 
 # 4) copy application files
-mkdir 
+mkdir /opt/scantelope/
+cp *.py /opt/scantelope/
+cp *.png /opt/scantelope/
+cp README /opt/scantelope/
+cp install.sh /opt/scantelope/
+cp COPYING /opt/scantelope/
+cp scantelope.sh /opt/scantelope/
