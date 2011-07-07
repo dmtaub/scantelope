@@ -73,7 +73,6 @@ class MyHandler(BaseHTTPRequestHandler):
          self.wfile.write(data)
 
    def do_GET(self):
-       resetTimer()
        wwrite=self.wwrite
        try:
            if self.path.startswith("/scan/"):
@@ -153,7 +152,8 @@ class MyHandler(BaseHTTPRequestHandler):
            else:
                self.send_error(404,'Command/File not found')
 
-           MyHandler.event.clear()
+           resetTimer()
+           #MyHandler.event.clear()
            return
       
        except IOError:
