@@ -20,7 +20,8 @@
 Data matrix decoding module for Scantelope.
 
 """
-#from os import curdir, sep, path
+from os.path import exists as fexist
+#curdir, sep, path
 
 EXPECTED_LEN = 10
 
@@ -43,7 +44,7 @@ class DMDecoder():
        if myDir != None:
            self.myDir = myDir
        if files != None:
-           self.files = files
+           self.files =  [f for f in files if fexist(self.myDir+f)]
        self.output = {}
        self.failed = []
        self.status = ''

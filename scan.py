@@ -238,7 +238,7 @@ class ScanControl(threading.Thread):
        self.myDir = defaultdir
        self.ext = '.'+defaultfn[1]
        
-       self.files = [i for i in listdir(self.myDir) if i.find(pref) != -1 and ''.join(i.split(pref)).rstrip(self.ext).isdigit()]
+       self.files = self.files = [pref+str(i)+self.ext for i in range(96)] #[i for i in listdir(self.myDir) if i.find(pref) != -1 and ''.join(i.split(pref)).rstrip(self.ext).isdigit()]
        self.files.sort()
        self.release() # ***
 
