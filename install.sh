@@ -13,7 +13,7 @@ mkdir dm
 cd dm
 
 # 0) INSTALL DEPENDENCIES
-sudo apt-get install -y cmake python-numpy g++ python2.6-dev git-core autoconf automake libtool sane libtiff4-dev
+sudo apt-get install -y cmake python-numpy g++ python-dev git-core autoconf automake libtool sane libtiff4-dev
 
 # 0a IMAGEMAGIC  6.5.8-9 or later:
 wget ftp://ftp.imagemagick.org/pub/ImageMagick/ImageMagick-6.7.0-10.tar.gz 
