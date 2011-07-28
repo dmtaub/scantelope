@@ -84,7 +84,7 @@ class DMDecoder():
           test = cv.Avg(cv_final) 
           if stop == True:
              pdb.set_trace()
-          if test[0] < 130 and test[0] > 45:   # hard threshold works for avision
+          if test[0] < 130 and test[0] > 40:   # hard threshold works for avision
            for img,name in [#[cv_smoo,"smooth"], #seems to introduce many errors
                            [cv_final,"clipped"],
                            [cv_orig,"original"]]:

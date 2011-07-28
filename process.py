@@ -28,7 +28,7 @@ from pdb import set_trace as st
 import findcode
 import time
 import cv
-findcode.low_res = True
+findcode.low_res = False
 EXPECTED_LEN = 10
 
 if findcode.low_res:
@@ -92,6 +92,11 @@ if __name__ == '__main__':
         
         dmtx_im = Image.fromstring("L", cv.GetSize(img), img.tostring())
 
+	if name != "original":
+          padding = 0.1
+        else:
+          padding = 0
+
         padding = 0.2
         ncols,nrows = dmtx_im.size
 
@@ -112,7 +117,12 @@ if __name__ == '__main__':
 
 #	import pdb;pdb.set_trace()
         (width, height) = dmtx_image.size
-        dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10, shrink = SHRINK)
+        
+        if findcode.low_res:
+           dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
+        else:
+           dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10, shrink = 2)
+#dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10, shrink = SHRINK)
         #dm_read = DataMatrix(max_count = 1, timeout = 300, shape = DataMatrix.DmtxSymbol12x12, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
         dmtx_code = dm_read.decode (width, height, buffer(dmtx_image.tostring()))
 
