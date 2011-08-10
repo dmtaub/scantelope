@@ -65,7 +65,11 @@ class ScanControl(threading.Thread):
 
       self.isScanning = False
 
-      self.setNextRes(600)
+      self.res = -1
+      g=globals()
+      res,g['getWell'], g['getFileFromWell'] = Config.read_init_config('avision-600')
+
+      self.setNextRes(res)
       self.setResFromNext()
       
 #      self.whichScanner = 0
@@ -76,12 +80,12 @@ class ScanControl(threading.Thread):
       self.mostRecentUpdate = datetime.now()
   
       self.decodeOnly = False
-  
+
       self.setStatus(strtime()+'\ninitialized')
 
    def setResFromNext(self):
       self.acquire()
-      if self.nextRes!= None:
+      if self.nextRes != None:
          self.res = self.nextRes
          if self.res == 300:
             low_res = True
@@ -92,7 +96,8 @@ class ScanControl(threading.Thread):
       self.release()
 
    def setNextRes(self,res):
-
+      if res == self.res:
+         return False
       if res in [300,600]:
          self.acquire()
          self.nextRes = res
@@ -246,8 +251,11 @@ class ScanControl(threading.Thread):
       self.setScannerFromNext()
       self.setResFromNext()
 
-      cropA,cropB,position,density = Config.configByScanner(self)
-      
+      sn = self.scannerNames[self.whichScanner]
+
+      cropA,cropB,position,density,res = Config.configByScannerAndRes(sn,self.res)
+      self.setNextRes(res) 
+
       proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/batch%d.tif --batch-count=1 --resolution '+str(self.res)+' --format=tiff '+position).split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
 
@@ -263,7 +271,7 @@ class ScanControl(threading.Thread):
       # if i != None:
       #    i.save('/tmp/batch2.tif')
       
-      proc=Popen(('convert /tmp/batch1.tif '+density+cropA+' /tmp/inner1.tif').split(),stdout=PIPE,stderr=PIPE)
+      proc=Popen(('convert /tmp/batch1.tif '+density+cropA(Config.offset)+' /tmp/inner1.tif').split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
       self.updateStatus(out+"\n"+err+'\n')
 

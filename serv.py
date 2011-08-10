@@ -36,6 +36,7 @@ replace {command} with:       in order to:
 
 import threading
 import scan
+Config = scan.Config
 
 from SocketServer import ThreadingMixIn
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -94,6 +95,21 @@ class MyHandler(BaseHTTPRequestHandler):
                        wwrite("selected resolution "+which)
                    else:
                        wwrite("invalid resolution")
+               elif self.path[6:13] == "setxoff":
+                   # might like some additional error checks on these...
+                   which = self.path[13:].strip('/')
+                   if which.lstrip('-').isdigit():
+                       Config.offset[0] = int(which)
+                       wwrite("selected xoffset "+which)
+                   else:
+                       wwrite("invalid xoffset")
+               elif self.path[6:13] == "setyoff":
+                   which = self.path[13:].strip('/')
+                   if which.lstrip('-').isdigit():
+                       Config.offset[1] = int(which)
+                       wwrite("selected yoffset "+which)
+                   else:
+                       wwrite("invalid yoffset")
                elif self.path.endswith("reset"):
                    MyHandler.sc.reset()
                    wwrite("reset decoded")
