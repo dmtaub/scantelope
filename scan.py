@@ -31,53 +31,9 @@ from time import sleep,strftime,time
 from subprocess import Popen, PIPE
 from datetime import datetime
 import decode
-
+from config import Config
 defaultfn=['split','tif']
 defaultdir= '/tmp/'
-
-
-def getWellAV(fn,pref):
-   n=fn.split(pref)[1].split('.')[0]
-   if not n.isdigit():
-      print "error, n:",n
-      return -1
-   n = int(n)
-   #return n
-   
-   row = chr(ord('A')+int(n%8))
-   col = (n / 8) + 1
-   #print n, row, col
-   return "%s%02d"%(row,col)
-
-def getWellHP(fn,pref):
-   n=fn.split(pref)[1].split('.')[0]
-   if not n.isdigit():
-      print "error, n:",n
-      return -1
-   n = int(n)
-   #return n
-   
-   col = chr(ord('A')+int(n/12))
-   row = 12-(n % 12)
-   #print n, row, col
-   return "%s%02d"%(col,row)
-getWell = getWellAV
-
-def getFileFromWellAV(well):
-    w = well.split('_')
-    if len(w) == 2:
-        return int(w[0])+8*int(w[1])
-    else:
-        return -1
-
-def getFileFromWellHP(well):
-    w = well.split('_')
-    if len(w) == 2:
-        return 84-12*(7-int(w[0]))+(11-int(w[1]))
-    else:
-        return -1
-
-getFileFromWell = getFileFromWellAV
 
 def modification_date(filename):
     t = path.getmtime(filename)
@@ -86,45 +42,6 @@ def modification_date(filename):
 
 def strtime():
    return strftime("%Y-%m-%d %H:%M:%S")
-
-# eventually pull this into a separate configuration file
-class CONFIG():
-   data={'avision-600':['-crop 1634x2502+182+224',
-                        '-crop 8x12-34-38@! -shave 20x20',
-                        '-l 14.5 -x 85 -t 10 -y 125'],
-          
-          'avision-300':['-crop 817x1251+91+112',
-                        '-crop 8x12-17-19@! -shave 10x10',
-                        '-l 14.5 -x 85 -t 10 -y 125'],
-          'hp3900-300': ['-crop 1250x836+134+82',
-                         '-crop 12x8-19-17@! -shave 10x10',
-                         '--mode Gray -l 45 -t 10 -x 130 -y 90 --opt_nowarmup=yes --opt_nogamma=yes'],
-          'hp3900-600': ['-crop 2500x1672+268+164',
-                         '-crop 12x8-38-34@! -shave 10x10',
-                         '--mode Gray -l 45 -t 10 -x 130 -y 90 --opt_nowarmup=yes --opt_nogamma=yes']} #90=275
-   @staticmethod
-   def has_key(key):
-      return CONFIG.data.has_key(key)
-
-   @staticmethod
-   def keys():
-      return CONFIG.data.keys()
-
-   @staticmethod
-   def values():
-      return CONFIG.data.values()
-
-   @staticmethod
-   def switch(key):
-      g=globals()
-      if key.find('avision') != -1:
-         g['getWell'] = getWellAV
-         g['getFileFromWell'] = getFileFromWellAV
-      elif key.find('hp') != -1: 
-         g['getWell'] = getWellHP
-         g['getFileFromWell'] = getFileFromWellHP
-      return CONFIG.data[key]
-
 
 class ScanControl(threading.Thread):
    listCodes = []
@@ -325,31 +242,11 @@ class ScanControl(threading.Thread):
            self.scannerNames = scannerNames or self.scannerNames
            self.release()
    
-   def configByScanner(self):   
-      sn = self.scannerNames[self.whichScanner]
-      key = sn+"-"+str(self.res)
-
-      if CONFIG.has_key(key):
-         cfg=CONFIG.switch(key)
-      else:
-         print "no configuration for %s at %d dpi"%(sn,self.res)
-         print "using first listed configuration for %s"%sn
-         ok = [i for i in CONFIG.keys() if i.find(sn) != -1]
-         if i == []:
-            print "no luck finding that scanner"
-            import pdb;pdb.set_trace()
-         else:
-            cfg = CONFIG.switch(ok[0])
-            self.setNextRes(int(ok[0].split('-')[-1]))
-      #print cfg
-      density = "-density %d "%self.res
-      return cfg+[density]
-
    def _shellOut(self):
       self.setScannerFromNext()
       self.setResFromNext()
 
-      cropA,cropB,position,density = self.configByScanner()
+      cropA,cropB,position,density = Config.configByScanner(self)
       
       proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/batch%d.tif --batch-count=1 --resolution '+str(self.res)+' --format=tiff '+position).split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
