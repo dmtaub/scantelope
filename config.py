@@ -22,12 +22,16 @@ Configuration module for Scantelope.
 
 """
 
+from ConfigParser import SafeConfigParser as cfgParser
+from os.path import exists
 def generateCropA(dx,dy,x,y):
    return lambda off: '-crop {0}x{1}+{2}+{3}'.format(dx,dy,x+off[0],y+off[1])
 
 class Config():
    configfile = "scantelope.cfg"
    offset = [0,0]
+
+   # should make data more generic with portrait and landscape modes, then sections in configuration file for each scanner
    data={'avision-600':[generateCropA(1634,2502,182,224),
                         '-crop 8x12-34-38@! -shave 20x20',
                         '-l 14.5 -x 85 -t 10 -y 125'],
@@ -44,12 +48,43 @@ class Config():
 
 
    @staticmethod
-   def writeFile():
-       pass
-       
+   def saveFile():
+       c=cfgParser()
+
+       # preserve other sections
+       if exists(Config.configfile):
+           f=open(Config.configfile,'r')
+           c.readfp(f)
+           f.close()
+
+       f=open(Config.configfile,'w')       
+       if not c.has_section('defaults'):
+           c.add_section('defaults')
+       c.set('defaults','scanner',Config.currentKey)
+       c.set('defaults','offset',str(Config.offset))
+       c.set('defaults','resolution',str(Config.res))
+       c.write(f)
+       f.close()
+       print "Configuration file saved"
+
    @staticmethod
-   def readFile():
-       return False
+   def loadFile():
+       if not exists(Config.configfile):
+           print "Configuration file not found..."
+           return False
+       else:
+           f=open(Config.configfile,'r')
+           c=cfgParser()
+           c.readfp(f)
+           if c.has_section('defaults'):
+               Config.currentKey = c.get('defaults','scanner')
+               Config.offset = eval(c.get('defaults','offset'))
+               Config.res = c.getint('defaults','resolution')
+               f.close()
+               return True
+           else:
+               print "Missing 'defaults' section"
+               return False
 
    @staticmethod
    def getWellAV(fn,pref):
@@ -95,13 +130,13 @@ class Config():
 
    @staticmethod
    def read_init_config(key):
-      r = Config.readFile()
 
-      if not r:
+      if not Config.loadFile():
          Config.switch(key)
-         Config.writeFile()
+         Config.saveFile()
       else:
-          print 'file found'
+          Config.setMethods()
+          print 'Loaded configuration'
 
       return Config.res, Config.getWell, Config.getFileFromWell
 
@@ -118,16 +153,22 @@ class Config():
       return Config.data.values()
 
    @staticmethod
-   def switch(key):
-      Config.currentKey = key
-      Config.res = int(key.split('-')[-1])
-      
+   def setMethods():
+      key = Config.currentKey
       if key.find('avision') != -1:
          Config.getWell = staticmethod(Config.getWellAV)
          Config.getFileFromWell = staticmethod(Config.getFileFromWellAV)
       elif key.find('hp') != -1: 
          Config.getWell = staticmethod(Config.getWellHP)
          Config.getFileFromWell = staticmethod(Config.getFileFromWellHP)
+
+
+   @staticmethod
+   def switch(key):
+      Config.res = int(key.split('-')[-1])      
+      Config.currentKey = key
+      Config.setMethods()
+
       return Config.data[key]
 
    @staticmethod

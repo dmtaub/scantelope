@@ -29,9 +29,16 @@ replace {command} with:       in order to:
       /scan/status             show current server settings and most recent log message
       /scan/list               list available scanners
       /scan/select/{0,1...n}   select scanner from list 
-      /scan/setres/{600|300}   select resolution 
+
+      /config/                 view current "inner" image and show options
+      /config/res/{600|300}    select resolution 
+      /config/xoff/{integer}   select xoffset
+      /config/yoff/{integer}   select yoffst
+      /config/save             saves current configuration to a file
+
       /                        view CSV of most-recently decoded 
       /images/n_m.jpg          view image from row n (0-7) and column m (0-11)
+      /images/inner.jpg        view full plate image
 """
 
 import threading
@@ -73,10 +80,67 @@ class MyHandler(BaseHTTPRequestHandler):
       else:
          self.wfile.write(data)
 
+   def tag(self, text, tag = 'html'):
+          return "<{0}>{1}</{0}>".format(tag,text)
+
+   def hwrite(self,data):
+      self.wwrite(self.tag(data),None)
+
    def do_GET(self):
        wwrite=self.wwrite
+       hwrite=self.hwrite
        try:
-           if self.path.startswith("/scan/"):
+           if self.path.startswith("/config"):
+               self.send_response(200)
+               self.send_header('Content-type','text/html')
+               self.end_headers()
+               status = ""
+               if self.path[8:11] == "res":
+                   which = self.path[11:].strip('/')
+                   if which.isdigit() and MyHandler.sc.setNextRes(int(which)):
+                       status = ("selected resolution "+which)
+                   else:
+                       status = ("invalid resolution")
+               elif self.path[8:12] == "xoff":
+                   # might like some additional error checks on these...
+                   which = self.path[12:].strip('/')
+                   if which.replace('-','',1).isdigit():
+                       Config.offset[0] = int(which)
+                       status =("selected xoffset "+which)
+                   else:
+                       status = ("invalid xoffset")
+               elif self.path[8:12] == "yoff":
+                   which = self.path[12:].strip('/')
+                   if which.replace('-','',1).isdigit():
+                       Config.offset[1] = int(which)
+                       status = ("selected yoffset "+which)
+                   else:
+                       status = ("invalid yoffset")
+               elif self.path[8:13] == "save":
+                   Config.saveFile()
+                   status = "Saved!"
+               thetime = datetime.now().isoformat()
+               hwrite("""<head><META HTTP-EQUIV="refresh" CONTENT="5; /config/">
+<title>Configuration Options</title></head>
+<body>
+<h2>%s</h2>
+<br>
+valid commands:<br>
+  res - resolution                  =  %d<br>
+ xoff - x offset (for all scanners) =  %d<br>
+ yoff - y offset                    =  %d<br>
+<br>
+ save - saves configuration file<br>
+<br>%s<br><img width=500 src="/images%s/inner.jpg"/>
+<br>%s
+</body>
+"""%(status,
+Config.res,
+Config.offset[0],
+Config.offset[1],
+thetime,thetime,MyHandler.sc.getStatus()))
+
+           elif self.path.startswith("/scan"):
                self.send_response(200)
                self.send_header('Content-type','text/plain')
                self.end_headers() 
@@ -89,27 +153,6 @@ class MyHandler(BaseHTTPRequestHandler):
                        wwrite("selected scanner "+which)
                    else:
                        wwrite("invalid scanner index")
-               elif self.path[6:12] == "setres":
-                   which = self.path[12:].strip('/')
-                   if which.isdigit() and MyHandler.sc.setNextRes(int(which)):
-                       wwrite("selected resolution "+which)
-                   else:
-                       wwrite("invalid resolution")
-               elif self.path[6:13] == "setxoff":
-                   # might like some additional error checks on these...
-                   which = self.path[13:].strip('/')
-                   if which.lstrip('-').isdigit():
-                       Config.offset[0] = int(which)
-                       wwrite("selected xoffset "+which)
-                   else:
-                       wwrite("invalid xoffset")
-               elif self.path[6:13] == "setyoff":
-                   which = self.path[13:].strip('/')
-                   if which.lstrip('-').isdigit():
-                       Config.offset[1] = int(which)
-                       wwrite("selected yoffset "+which)
-                   else:
-                       wwrite("invalid yoffset")
                elif self.path.endswith("reset"):
                    MyHandler.sc.reset()
                    wwrite("reset decoded")
@@ -119,7 +162,12 @@ class MyHandler(BaseHTTPRequestHandler):
                    wwrite("unknown scan command")
 
            elif self.path.startswith("/images") and self.path.endswith('.jpg'):
-               fn = MyHandler.fileprot%scan.getFileFromWell(self.path.split('/')[-1][:-4])
+               subpath = self.path.split('/')[-1][:-4]
+               if subpath.find('_') != -1:
+                   fn = MyHandler.fileprot%scan.getFileFromWell(subpath)
+               else:
+                   proto= MyHandler.sc.myDir+'%s.jpg'
+                   fn = proto%subpath
                #print fn
                if exists(fn):
                    f = open(fn,"rb")

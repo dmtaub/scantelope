@@ -275,6 +275,11 @@ class ScanControl(threading.Thread):
       out,err = proc.communicate()
       self.updateStatus(out+"\n"+err+'\n')
 
+      # could do this stuff in openCV or PIL as well...
+      proc=Popen((('convert /tmp/inner1.tif /tmp/inner.jpg')).split(),stdout=PIPE,stderr=PIPE)
+      out,err = proc.communicate()
+      self.updateStatus(out+"\n"+err+'\n')
+
       proc=Popen((('convert /tmp/inner1.tif '+density+cropB+' +repage '+self.myDir+self.pref+'%d'+self.ext)).split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
 
