@@ -46,6 +46,13 @@ class Config():
                          '-crop 12x8-38-34@! -shave 10x10',
                          '--mode Gray -l 45 -t 10 -x 130 -y 90 --opt_nowarmup=yes --opt_nogamma=yes']} #90=275
 
+   @staticmethod
+   def generateData(res,dx,dy,x,y):
+      if res == 300:
+         crop = '-crop 8x12-17-19@! -shave 10x10'
+      else:
+         crop = '-crop 8x12-34-38@! -shave 20x20'
+      return [generateCropA(dx,dy,x,y),crop,'']
 
    @staticmethod
    def saveFile():
@@ -60,7 +67,7 @@ class Config():
        f=open(Config.configfile,'w')       
        if not c.has_section('defaults'):
            c.add_section('defaults')
-       c.set('defaults','scanner',Config.currentKey)
+       c.set('defaults','scanner',Config.scanner)
        c.set('defaults','offset',str(Config.offset))
        c.set('defaults','resolution',str(Config.res))
        c.write(f)
@@ -77,7 +84,7 @@ class Config():
            c=cfgParser()
            c.readfp(f)
            if c.has_section('defaults'):
-               Config.currentKey = c.get('defaults','scanner')
+               Config.scanner = c.get('defaults','scanner')
                Config.offset = eval(c.get('defaults','offset'))
                Config.res = c.getint('defaults','resolution')
                f.close()
@@ -129,12 +136,13 @@ class Config():
            return -1
 
    @staticmethod
-   def read_init_config(key):
+   def readInitialConfig(key):
 
       if not Config.loadFile():
          Config.switch(key)
          Config.saveFile()
       else:
+          Config.currentKey = Config.scanner + '-'+str(Config.res)
           Config.setMethods()
           print 'Loaded configuration'
 
@@ -154,23 +162,31 @@ class Config():
 
    @staticmethod
    def setMethods():
-      key = Config.currentKey
-      if key.find('avision') != -1:
+      if Config.scanner in ['avision','custom']:
          Config.getWell = staticmethod(Config.getWellAV)
          Config.getFileFromWell = staticmethod(Config.getFileFromWellAV)
-      elif key.find('hp') != -1: 
+      elif Config.scanner == 'hp3900':
          Config.getWell = staticmethod(Config.getWellHP)
          Config.getFileFromWell = staticmethod(Config.getFileFromWellHP)
 
 
    @staticmethod
    def switch(key):
-      Config.res = int(key.split('-')[-1])      
+      scanner,resolution = key.split('-')
+
+      Config.res = int(resolution)      
+      Config.scanner = scanner
       Config.currentKey = key
+      
       Config.setMethods()
 
       return Config.data[key]
 
+   @staticmethod
+   def currentConfiguration():
+      return Config.data[Config.currentKey]
+
+   # deprecated
    @staticmethod
    def configByScannerAndRes(scanner,res):   
       #maybe remember last settigns and only return those unless some new change.
@@ -189,8 +205,9 @@ class Config():
          else:
             cfg = Config.switch(ok[0])
       #print cfg
-      density = "-density %d "%Config.res
-      return cfg+[density,Config.res]
+      #density = "-density %d "%Config.res
+      #return cfg+[density,Config.res]
+      return cfg+[Config.res]
 
 
 

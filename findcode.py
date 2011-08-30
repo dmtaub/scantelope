@@ -125,7 +125,6 @@ class ToDisplay:
         if key == '\n':
             sys.exit(0)
 
-       
 def getAngle(dft_img, do_display = False,verbose = False):
         # create 8-bit image from DFT output
         scale_dst = cv.CreateImage( cv.GetSize(dft_img), 8, 1 );
@@ -252,6 +251,17 @@ def scanOrientation(img,do_display):
 #    ToDisplay.add('img',img)
 #    exec interactive('ToDisplay.showIm()')
     return angle
+
+def calibrate(fn):
+    c_image = cv.LoadImage(fn,0)
+    if not low_res:
+        c = cv.CreateImage( ( (c_image.width+1)/2, (c_image.height+1)/2 ), c_image.depth, 1 );
+        cv.Resize(c_image,c)
+        retVal = [2*i for i in templateMatch(c,False,"template_calib.png")]
+    else:
+        c = c_image
+        retVal = templateMatch(c,False,"template_calib.png")
+    return retVal
 
 def templateMatch(img,do_display,fn = "template3.png", margin = 0,display_img = None):
     tpl = cv.LoadImage(fn,0)

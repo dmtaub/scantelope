@@ -34,6 +34,7 @@ replace {command} with:       in order to:
       /config/res/{600|300}    select resolution 
       /config/xoff/{integer}   select xoffset
       /config/yoff/{integer}   select yoffst
+      /config/calibrate        automatically configure box position and boundaries
       /config/save             saves current configuration to a file
 
       /                        view CSV of most-recently decoded 
@@ -95,6 +96,9 @@ class MyHandler(BaseHTTPRequestHandler):
                self.send_header('Content-type','text/html')
                self.end_headers()
                status = ""
+               if self.path[8:17] == "calibrate":
+                   MyHandler.sc.calibrateNext()
+                   status = ("will soon calibrate...")
                if self.path[8:11] == "res":
                    which = self.path[11:].strip('/')
                    if which.isdigit() and MyHandler.sc.setNextRes(int(which)):
@@ -131,6 +135,7 @@ valid commands:<br>
  yoff - y offset                    =  %d<br>
 <br>
  save - saves configuration file<br>
+ calibrate - initiates automatic calibration<br>
 <br>%s<br><img width=500 src="/images%s/inner.jpg"/>
 <br>%s
 </body>
@@ -138,7 +143,7 @@ valid commands:<br>
 Config.res,
 Config.offset[0],
 Config.offset[1],
-thetime,thetime,MyHandler.sc.getStatus()))
+thetime,thetime,MyHandler.sc.getStatus().replace('\n','<br>')))
 
            elif self.path.startswith("/scan"):
                self.send_response(200)
@@ -251,7 +256,7 @@ def main():
       MyHandler.sc=scan.ScanControl(MyHandler.event)
       MyHandler.sc.forceRepeat = True
       MyHandler.fileprot = MyHandler.sc.myDir+MyHandler.sc.pref+'%s.jpg'
-      
+      MyHandler.sc.findScanners()
       MyHandler.sc.start()
 
       server = ThreadingHTTPServer(('', PORT), MyHandler)

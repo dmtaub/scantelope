@@ -64,10 +64,11 @@ class ScanControl(threading.Thread):
       self.scannerNames = {0:"none"}
 
       self.isScanning = False
+      self.calibrating= False
 
       self.res = -1
       g=globals()
-      res,g['getWell'], g['getFileFromWell'] = Config.read_init_config('avision-600')
+      res,g['getWell'], g['getFileFromWell'] = Config.readInitialConfig('avision-600')
 
       self.setNextRes(res)
       self.setResFromNext()
@@ -81,12 +82,14 @@ class ScanControl(threading.Thread):
   
       self.decodeOnly = False
 
-      self.setStatus(strtime()+'\ninitialized')
+      self.setStatus(strtime()+'\ninitialized\n')
 
    def setResFromNext(self):
       self.acquire()
       if self.nextRes != None:
          self.res = self.nextRes
+         Config.res = self.res
+         Config.currentKey = Config.scanner + '-' +str(Config.res)
          if self.res == 300:
             low_res = True
          else:
@@ -209,7 +212,7 @@ class ScanControl(threading.Thread):
       self.dm.__init__()
       self.release() # ***
       print "legacy code reached"
-      self.setStatus(strtime()+'\ndecoder initialized')
+      self.setStatus(strtime()+'\ndecoder initialized\n')
       
 
 #   def stopScan(self):
@@ -226,6 +229,7 @@ class ScanControl(threading.Thread):
       self.lock.release()
         
    def findScanners(self):
+       print "finding scanners..."
        proc=Popen(['scanimage',"-f","%d%n"],stdout=PIPE)
        out, err = proc.communicate()
        if out == '':
@@ -246,16 +250,50 @@ class ScanControl(threading.Thread):
            self.scanners = scannerIds
            self.scannerNames = scannerNames or self.scannerNames
            self.release()
-   
+
+   def calibrateNext(self):
+      self.acquire()
+      self.calibrating = True
+      self.release()
+
+   def _calibrate(self):
+      self.updateStatus("calibrating\n\n")
+      x,y,dx,dy = decode.findcode.calibrate("/tmp/calib1.tif")
+      print (x,y,dx,dy)
+      key = 'custom-%d'%self.res
+      Config.data[key] = Config.generateData(self.res,dx,dy,x,y)
+      Config.switch(key)
+      Config.offset = [0,0]
+
+      self.acquire()
+      self.calibrating = False
+      self.release()
+
    def _shellOut(self):
       self.setScannerFromNext()
       self.setResFromNext()
 
-      sn = self.scannerNames[self.whichScanner]
+      #sn = self.scannerNames[self.whichScanner]
+      #cropA,cropB,position,density,res = Config.configByScannerAndRes(sn,self.res)
+      #self.setNextRes(res) 
 
-      cropA,cropB,position,density,res = Config.configByScannerAndRes(sn,self.res)
-      self.setNextRes(res) 
+      cropA,cropB,position = Config.currentConfiguration()
 
+      if self.calibrating:
+          self._shell_obtain_fullscan()
+          self._calibrate()
+          return False
+      else:
+          self._shell_obtain_images(cropA,cropB,position)
+          return True
+   
+   def _shell_obtain_fullscan(self):
+      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/calib%d.tif --batch-count=1 --resolution '+str(self.res)+' --format=tiff ').split(),stdout=PIPE,stderr=PIPE)
+      out,err = proc.communicate()
+      self.updateStatus(out+"\n"+err+'\n')
+
+
+   def _shell_obtain_images(self,cropA,cropB,position):
       proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/batch%d.tif --batch-count=1 --resolution '+str(self.res)+' --format=tiff '+position).split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
 
@@ -270,6 +308,8 @@ class ScanControl(threading.Thread):
       #    pass
       # if i != None:
       #    i.save('/tmp/batch2.tif')
+
+      density = "-density %d "%self.res
       
       proc=Popen(('convert /tmp/batch1.tif '+density+cropA(Config.offset)+' /tmp/inner1.tif').split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
@@ -324,7 +364,7 @@ class ScanControl(threading.Thread):
       self.release()
 
    def run(self):
-       self.findScanners()
+       #self.findScanners()
        origNumScanners = len(self.scanners)
        while 1:
           if self.isScanning:
@@ -333,8 +373,8 @@ class ScanControl(threading.Thread):
              #self.release()
              if self.scanners.has_key(self.whichScanner):
                 self.setStatus('\n'.join(self.getStatus().strip().split('\n')[-10:])+strtime())
-                self._shellOut()
-                self._doDecode()
+                if self._shellOut():
+                  self._doDecode()
              elif self.decodeOnly:
                 self._doDecode()
                 if not self.forceRepeat:
