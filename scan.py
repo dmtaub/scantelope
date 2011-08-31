@@ -51,10 +51,6 @@ class ScanControl(threading.Thread):
       self.lock = threading.RLock()
       self.event = event
 
-#      if decode.findcode.low_res == True:
-#          self.res = 300
-#      else:
-
       self.forceRepeat = False
       self.getFilenames()
       self.dm = decode.DMDecoder(self.myDir,self.files)#,res = self.res)
@@ -66,7 +62,6 @@ class ScanControl(threading.Thread):
       self.isScanning = False
       self.calibrating= False
 
-      self.res = -1
       g=globals()
       res,g['getWell'], g['getFileFromWell'] = Config.readInitialConfig('avision-600')
 
@@ -87,10 +82,8 @@ class ScanControl(threading.Thread):
    def setResFromNext(self):
       self.acquire()
       if self.nextRes != None:
-         self.res = self.nextRes
-         Config.res = self.res
-         Config.currentKey = Config.scanner + '-' +str(Config.res)
-         if self.res == 300:
+         Config.setRes(self.nextRes)
+         if Config.res == 300:
             low_res = True
          else:
             low_res = False
@@ -99,9 +92,7 @@ class ScanControl(threading.Thread):
       self.release()
 
    def setNextRes(self,res):
-      if res == self.res:
-         return False
-      if res in [300,600]:
+      if res in Config.validResolutions():
          self.acquire()
          self.nextRes = res
          self.release()
@@ -182,12 +173,12 @@ class ScanControl(threading.Thread):
    def getStatus(self):
       self.acquire()
       if self.nextRes or self.nextScanner:
-         nr = self.nextRes or self.res
+         nr = self.nextRes or Config.res
          name = self.nextScanner != None and self.scannerNames[self.nextScanner] or "same"
          next = " -> %s %ddpi\n"%(name,nr)
       else:
          next = "\n"
-      c = self.scannerNames[self.whichScanner]+" "+str(self.res)+"dpi"+next
+      c = self.scannerNames[self.whichScanner]+" as "+Config.scanner+" at "+str(Config.res)+"dpi"+next
       c += self.status[:]
       self.release()
       return c
@@ -260,12 +251,8 @@ class ScanControl(threading.Thread):
       self.updateStatus("calibrating\n\n")
       x,y,dx,dy = decode.findcode.calibrate("/tmp/calib1.tif")
       print (x,y,dx,dy)
-      key = 'custom-%d'%self.res
-      Config.data[key] = Config.generateData(self.res,dx,dy,x,y)
-      Config.switch(key)
-      Config.offset = [0,0]
-
       self.acquire()
+      Config.switch(Config.createCalibratedConfig(dx,dy,x,y))
       self.calibrating = False
       self.release()
 
@@ -288,13 +275,13 @@ class ScanControl(threading.Thread):
           return True
    
    def _shell_obtain_fullscan(self):
-      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/calib%d.tif --batch-count=1 --resolution '+str(self.res)+' --format=tiff ').split(),stdout=PIPE,stderr=PIPE)
+      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/calib%d.tif --batch-count=1 --resolution '+str(Config.res)+' --format=tiff ').split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
       self.updateStatus(out+"\n"+err+'\n')
 
 
    def _shell_obtain_images(self,cropA,cropB,position):
-      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/batch%d.tif --batch-count=1 --resolution '+str(self.res)+' --format=tiff '+position).split(),stdout=PIPE,stderr=PIPE)
+      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/batch%d.tif --batch-count=1 --resolution '+str(Config.res)+' --format=tiff '+position).split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()
 
       self.updateStatus(out+"\n"+err+'\n')
@@ -309,7 +296,7 @@ class ScanControl(threading.Thread):
       # if i != None:
       #    i.save('/tmp/batch2.tif')
 
-      density = "-density %d "%self.res
+      density = "-density %d "%Config.res
       
       proc=Popen(('convert /tmp/batch1.tif '+density+cropA(Config.offset)+' /tmp/inner1.tif').split(),stdout=PIPE,stderr=PIPE)
       out,err = proc.communicate()

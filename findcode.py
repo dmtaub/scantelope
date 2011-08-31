@@ -257,10 +257,10 @@ def calibrate(fn):
     if not low_res:
         c = cv.CreateImage( ( (c_image.width+1)/2, (c_image.height+1)/2 ), c_image.depth, 1 );
         cv.Resize(c_image,c)
-        retVal = [2*i for i in templateMatch(c,False,"template_calib.png")]
+#        retVal = [2*i for i in templateMatch(c,False,"template_calib.png")]
     else:
         c = c_image
-        retVal = templateMatch(c,False,"template_calib.png")
+    retVal = templateMatch(c,False,"template_calib.png")
     return retVal
 
 def templateMatch(img,do_display,fn = "template3.png", margin = 0,display_img = None):

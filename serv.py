@@ -98,7 +98,7 @@ class MyHandler(BaseHTTPRequestHandler):
                status = ""
                if self.path[8:17] == "calibrate":
                    MyHandler.sc.calibrateNext()
-                   status = ("will soon calibrate...")
+                   status = ("calibrating...")
                if self.path[8:11] == "res":
                    which = self.path[11:].strip('/')
                    if which.isdigit() and MyHandler.sc.setNextRes(int(which)):

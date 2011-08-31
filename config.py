@@ -48,11 +48,33 @@ class Config():
 
    @staticmethod
    def generateData(res,dx,dy,x,y):
-      if res == 300:
-         crop = '-crop 8x12-17-19@! -shave 10x10'
+      factor = res / 300
+      crop = '-crop 8x12-%d-%d@! -shave %dx%d'%(17*factor,19*factor,10*factor,10*factor)
+      return [generateCropA(dx*factor,dy*factor,x*factor,y*factor),crop,'']
+
+   @staticmethod
+   def createCalibratedConfig(dx,dy,x,y):
+      for res in Config.validResolutions():
+         Config.data['custom-'+str(res)] = Config.generateData(res,dx,dy,x,y)
+      return 'custom-%d'%Config.res
+   @staticmethod
+   def validResolutions():
+      return [300,600]
+
+   @staticmethod
+   def makeKey():
+      key = Config.scanner + '-'+str(Config.res)
+      if Config.has_key(key):
+         Config.currentKey = key
       else:
-         crop = '-crop 8x12-34-38@! -shave 20x20'
-      return [generateCropA(dx,dy,x,y),crop,'']
+         raise KeyError(key+" unknown")
+
+   @staticmethod
+   def setRes(res):
+      Config.res = res
+      Config.makeKey()
+#      Config.makeKey(res = res)
+
 
    @staticmethod
    def saveFile():
@@ -142,9 +164,9 @@ class Config():
          Config.switch(key)
          Config.saveFile()
       else:
-          Config.currentKey = Config.scanner + '-'+str(Config.res)
-          Config.setMethods()
-          print 'Loaded configuration'
+         Config.makeKey()
+         Config.setMethods()
+         print 'Loaded configuration'
 
       return Config.res, Config.getWell, Config.getFileFromWell
 
@@ -189,7 +211,7 @@ class Config():
    # deprecated
    @staticmethod
    def configByScannerAndRes(scanner,res):   
-      #maybe remember last settigns and only return those unless some new change.
+      #maybe remember last settings and only return those unless some new change.
       # can split this into two functions, init and gette
       key = scanner+"-"+str(res)
 
