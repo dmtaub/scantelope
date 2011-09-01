@@ -34,8 +34,9 @@ replace {command} with:       in order to:
       /config/res/{600|300}    select resolution 
       /config/xoff/{integer}   select xoffset
       /config/yoff/{integer}   select yoffst
-      /config/calibrate        automatically configure box position and boundaries
+
       /config/save             saves current configuration to a file
+      /config/calibrate        automatically configure box position/boundaries and saves
 
       /                        view CSV of most-recently decoded 
       /images/n_m.jpg          view image from row n (0-7) and column m (0-11)
@@ -135,7 +136,7 @@ valid commands:<br>
  yoff - y offset                    =  %d<br>
 <br>
  save - saves configuration file<br>
- calibrate - initiates automatic calibration<br>
+ calibrate - initiates automatic calibration (and saves custom settings)<br>
 <br>%s<br><img width=500 src="/images%s/inner.jpg"/>
 <br>%s
 </body>

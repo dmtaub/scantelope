@@ -126,13 +126,9 @@ class DMDecoder():
 
              out = dmtx_code
 
-    #      if not is_found:
-    #        dm_read = DataMatrix(max_count = 1, timeout = 300, min_edge = 20, max_edge = 32, threshold = 5, deviation = 10)
-    #        dmtx_code = dm_read.decode (width, height, buffer(dmtx_image.tostring()))
-    #        if dmtx_code is not None and len(dmtx_code) == EXPECTED_LEN:
-    #            how = "Quick Search(2): "+str(name)
-    #            is_found = True
-    #      out = dmtx_code
+             if not is_found:
+                self.failed.append(filename)
+
           else:
              failNum+=1
           if is_found:
@@ -141,7 +137,8 @@ class DMDecoder():
              #print filename, out, test[0]
           else:
              #print filename, None, test[0]
-             self.failed.append(filename)
+             pass
+             #self.failed.append(filename)
           m+=1
       print failNum, "failed to produce images worth decoding"
       print n,"of the",m-failNum,"remaining were successfully decoded."

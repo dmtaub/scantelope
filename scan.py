@@ -252,7 +252,7 @@ class ScanControl(threading.Thread):
       x,y,dx,dy = decode.findcode.calibrate("/tmp/calib1.tif")
       print (x,y,dx,dy)
       self.acquire()
-      Config.switch(Config.createConfig(dx,dy,x,y))
+      Config.saveCalibrated(dx,dy,x,y,'')
       self.calibrating = False
       self.release()
 
