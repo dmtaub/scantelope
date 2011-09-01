@@ -31,6 +31,7 @@ replace {command} with:       in order to:
       /scan/select/{0,1...n}   select scanner from list 
 
       /config/                 view current "inner" image and show options
+      /config/use/{name}       use configuration "name" for current scanner
       /config/res/{600|300}    select resolution 
       /config/xoff/{integer}   select xoffset
       /config/yoff/{integer}   select yoffst
@@ -106,6 +107,12 @@ class MyHandler(BaseHTTPRequestHandler):
                        status = ("selected resolution "+which)
                    else:
                        status = ("invalid resolution")
+               elif self.path[8:11] == "use":
+                   which = self.path[11:].strip('/')
+                   if MyHandler.sc.setNextConfig(which):                   
+                       status =("selected configuration: "+which)
+                   else:
+                       status = ("unknown configuration.")
                elif self.path[8:12] == "xoff":
                    # might like some additional error checks on these...
                    which = self.path[12:].strip('/')
@@ -124,13 +131,19 @@ class MyHandler(BaseHTTPRequestHandler):
                elif self.path[8:13] == "save":
                    Config.saveFile()
                    status = "Saved!"
+               elif self.path[8:] == "":
+                   pass
+               else:
+                   status = "unknown config command [%s]"%self.path[8:]
                thetime = datetime.now().isoformat()
                hwrite("""<head><META HTTP-EQUIV="refresh" CONTENT="5; /config/">
 <title>Configuration Options</title></head>
 <body>
 <h2>%s</h2>
 <br>
-valid commands:<br>
+<u>valid commands:</u><br>
+  use - set configuration to one of: %s = %s<br>
+<br>
   res - resolution                  =  %d<br>
  xoff - x offset (for all scanners) =  %d<br>
  yoff - y offset                    =  %d<br>
@@ -141,6 +154,8 @@ valid commands:<br>
 <br>%s
 </body>
 """%(status,
+str(list(Config.names)).replace("'",''),
+Config.scanner,
 Config.res,
 Config.offset[0],
 Config.offset[1],

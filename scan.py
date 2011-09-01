@@ -71,6 +71,8 @@ class ScanControl(threading.Thread):
 #      self.whichScanner = 0
       self.nextScanner = 0 #bypasses checks since scanners dict is empty
       self.setScannerFromNext()
+
+      self.nextConfig = None
       
       self.setDecoded({})
       self.mostRecentUpdate = datetime.now()
@@ -95,6 +97,24 @@ class ScanControl(threading.Thread):
       if res in Config.validResolutions():
          self.acquire()
          self.nextRes = res
+         self.release()
+         return True
+      else:
+         return False
+
+   def setConfigFromNext(self):
+       self.acquire()
+       if self.nextConfig != None:
+           Config.scanner = self.nextConfig
+           Config.makeKey()
+           Config.setMethods()
+           self.nextConfig = None
+       self.release()
+
+   def setNextConfig(self,config):
+      if config in Config.names:
+         self.acquire()
+         self.nextConfig = config
          self.release()
          return True
       else:
@@ -259,11 +279,12 @@ class ScanControl(threading.Thread):
    def _shellOut(self):
       self.setScannerFromNext()
       self.setResFromNext()
-
+      self.setConfigFromNext()
       #sn = self.scannerNames[self.whichScanner]
       #cropA,cropB,position,density,res = Config.configByScannerAndRes(sn,Config.res)
       #self.setNextRes(res) 
 
+      
       cropA,cropB,position = Config.currentConfiguration()
 
       if self.calibrating:
@@ -314,8 +335,12 @@ class ScanControl(threading.Thread):
       
 
    def _doDecode(self):
-       
-       output,failed,status=self.dm.parseImages()
+       try:
+           output,failed,status=self.dm.parseImages()
+       except Exception, e:
+           print "ERROR in parseImages:",str(e)
+           self.setStatus("\nERROR in parseImages, specify a different configuration via : use/*name*\n")
+           return
        self.updateStatus(status)
        flag = False
        self.acquire()

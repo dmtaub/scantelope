@@ -46,6 +46,7 @@ def CropB(landscape,factor):
 class Config():
    configfile = "scantelope.cfg"
    offset = [0,0]
+   names = set()
 
    # should make data more generic with portrait and landscape modes, then sections in configuration file for each scanner
    data={}
@@ -87,6 +88,7 @@ class Config():
       #should test for existence in config file?
       for res in Config.validResolutions():
          Config.data['%s-%d'%(name,res)] = Config.generateData(res,dx,dy,x,y)
+      Config.names.add(name)
       return name
 
    @staticmethod
@@ -98,6 +100,7 @@ class Config():
       key = Config.scanner + '-'+str(Config.res)
       if Config.has_key(key):
          Config.currentKey = key
+         print "currentkey:",key
       else:
          raise KeyError(key+" missing from configuration")
 
@@ -246,10 +249,12 @@ class Config():
 
    @staticmethod
    def setMethods():
-      if Config.scanner in ['avision','custom']:
+      rect=Config.currentConfiguration()[0](0)
+      landscape = (rect[1] > rect[2])
+      if not landscape:    #Config.scanner in ['avision','custom']:
          Config.getWell = staticmethod(Config.getWellAV)
          Config.getFileFromWell = staticmethod(Config.getFileFromWellAV)
-      elif Config.scanner == 'hp3900':
+      else:                 #Config.scanner == 'hp3900':
          Config.getWell = staticmethod(Config.getWellHP)
          Config.getFileFromWell = staticmethod(Config.getFileFromWellHP)
 
@@ -269,31 +274,6 @@ class Config():
    @staticmethod
    def currentConfiguration():
       return Config.data[Config.currentKey]
-
-   # deprecated
-   @staticmethod
-   def configByScannerAndRes(scanner,res):   
-      #maybe remember last settings and only return those unless some new change.
-      # can split this into two functions, init and gette
-      key = scanner+"-"+str(res)
-
-      if Config.has_key(key):
-         cfg=Config.switch(key)
-      else:
-         print "no configuration for %s at %d dpi"%(scanner,res)
-         print "using first listed configuration for %s"%scanner
-         ok = [i for i in Config.keys() if i.find(scanner) != -1]
-         if i == []:
-            print "no luck finding that scanner"
-            import pdb;pdb.set_trace()
-         else:
-            cfg = Config.switch(ok[0])
-      #print cfg
-      #density = "-density %d "%Config.res
-      #return cfg+[density,Config.res]
-      return cfg+[Config.res]
-
-
 
 #initialize on import
 
