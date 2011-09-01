@@ -185,7 +185,7 @@ thetime,thetime,MyHandler.sc.getStatus().replace('\n','<br>')))
            elif self.path.startswith("/images") and self.path.endswith('.jpg'):
                subpath = self.path.split('/')[-1][:-4]
                if subpath.find('_') != -1:
-                   fn = MyHandler.fileprot%scan.getFileFromWell(subpath)
+                   fn = MyHandler.fileprot%Config.getFileFromWell(subpath)
                else:
                    proto= MyHandler.sc.myDir+'%s.jpg'
                    fn = proto%subpath
@@ -219,7 +219,7 @@ thetime,thetime,MyHandler.sc.getStatus().replace('\n','<br>')))
                else:
                    MyHandler.lastUpdateTime = datetime.now()
                    listCodes = decoded.iteritems()
-                   listCodes = map(lambda x: (scan.getWell(x[0],MyHandler.sc.pref),
+                   listCodes = map(lambda x: (Config.getWell(x[0],MyHandler.sc.pref),
                                               x[1][0],x[1][1],x[1][2]),
                                    listCodes)
                    listCodes.sort()

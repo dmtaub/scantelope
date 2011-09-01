@@ -62,8 +62,7 @@ class ScanControl(threading.Thread):
       self.isScanning = False
       self.calibrating= False
 
-      g=globals()
-      res,g['getWell'], g['getFileFromWell'] = Config.readInitialConfig()
+      res = Config.readInitialConfig()
 
       self.setNextRes(res)
       self.setResFromNext()
@@ -105,9 +104,7 @@ class ScanControl(threading.Thread):
    def setConfigFromNext(self):
        self.acquire()
        if self.nextConfig != None:
-           Config.active = self.nextConfig
-           Config.makeKey()
-           Config.setMethods()
+           Config.setActive(self.nextConfig)
            self.nextConfig = None
        self.release()
 
@@ -339,7 +336,7 @@ class ScanControl(threading.Thread):
            output,failed,status=self.dm.parseImages()
        except Exception, e:
            print "ERROR in parseImages:",str(e)
-           self.setStatus("\nERROR in parseImages, specify a different configuration via : use/*name*\n")
+           self.setStatus("\nERROR in parseImages, specify a different configuration via use/*name*\n\n")
            return
        self.updateStatus(status)
        flag = False

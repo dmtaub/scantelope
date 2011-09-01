@@ -110,6 +110,11 @@ class Config():
       Config.makeKey()
 #      Config.makeKey(res = res)
 
+   @staticmethod
+   def setActive(name):
+      Config.active = name
+      Config.makeKey()
+      Config.setMethods()
 
    @staticmethod
    def saveFile(callbacks = []):
@@ -232,8 +237,7 @@ class Config():
          Config.makeKey()
          Config.setMethods()
          print 'Loaded configuration'
-
-      return Config.res, Config.getWell, Config.getFileFromWell
+      return Config.res
 
    @staticmethod
    def has_key(key):
