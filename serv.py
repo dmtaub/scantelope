@@ -101,7 +101,7 @@ class MyHandler(BaseHTTPRequestHandler):
                if self.path[8:17] == "calibrate":
                    MyHandler.sc.calibrateNext()
                    status = ("calibrating...")
-               if self.path[8:11] == "res":
+               elif self.path[8:11] == "res":
                    which = self.path[11:].strip('/')
                    if which.isdigit() and MyHandler.sc.setNextRes(int(which)):
                        status = ("selected resolution "+which)
@@ -155,7 +155,7 @@ class MyHandler(BaseHTTPRequestHandler):
 </body>
 """%(status,
 str(list(Config.names)).replace("'",''),
-Config.scanner,
+Config.active,
 Config.res,
 Config.offset[0],
 Config.offset[1],

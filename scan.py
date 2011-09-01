@@ -105,7 +105,7 @@ class ScanControl(threading.Thread):
    def setConfigFromNext(self):
        self.acquire()
        if self.nextConfig != None:
-           Config.scanner = self.nextConfig
+           Config.active = self.nextConfig
            Config.makeKey()
            Config.setMethods()
            self.nextConfig = None
@@ -198,7 +198,7 @@ class ScanControl(threading.Thread):
          next = " -> %s %ddpi\n"%(name,nr)
       else:
          next = "\n"
-      c = self.scannerNames[self.whichScanner]+" as "+Config.scanner+" at "+str(Config.res)+"dpi"+next
+      c = self.scannerNames[self.whichScanner]+" as "+Config.active+" at "+str(Config.res)+"dpi"+next
       c += self.status[:]
       self.release()
       return c

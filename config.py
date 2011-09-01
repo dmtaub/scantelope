@@ -97,7 +97,7 @@ class Config():
 
    @staticmethod
    def makeKey():
-      key = Config.scanner + '-'+str(Config.res)
+      key = Config.active + '-'+str(Config.res)
       if Config.has_key(key):
          Config.currentKey = key
          print "currentkey:",key
@@ -123,7 +123,7 @@ class Config():
 
        f=open(Config.configfile,'w')       
 
-       Config.setConfig(c,'defaults',[['scanner',       Config.scanner],
+       Config.setConfig(c,'defaults',[['active',       Config.active],
                                       ['offset',    str(Config.offset)],
                                       ['resolution',   str(Config.res)]])
        for callback in callbacks:
@@ -167,7 +167,7 @@ class Config():
          for s in c.sections():
             if s == 'defaults':
                retVal = True
-               Config.scanner = c.get('defaults','scanner') or 'avision' #if (zero-length)
+               Config.active = c.get('defaults','active') or 'avision' #if (zero-length)
                Config.offset = c.getpair('defaults','offset')
                Config.res = c.getint('defaults','resolution')
                  # switch here?
@@ -261,10 +261,10 @@ class Config():
 
    @staticmethod
    def switch(key):
-      scanner,resolution = key.split('-')
+      active,resolution = key.split('-')
 
       Config.res = int(resolution)      
-      Config.scanner = scanner
+      Config.active = active
       Config.currentKey = key
       
       Config.setMethods()
