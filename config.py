@@ -24,15 +24,27 @@ Configuration module for Scantelope.
 
 from ConfigParser import SafeConfigParser as cfgParser
 from os.path import exists
+
 def generateCropA(dx,dy,x,y):
    return lambda off: '-crop {0}x{1}+{2}+{3}'.format(dx,dy,x+off[0],y+off[1])
+
+def CropB(landscape,factor):
+   if landscape:
+      crop = '-crop 12x8-%d-%d@! -shave %dx%d'%(19*factor,17*factor,10*factor,10*factor)
+   else:
+      crop = '-crop 8x12-%d-%d@! -shave %dx%d'%(17*factor,19*factor,10*factor,10*factor)
+   return crop
+
+def evalPair(s):
+   return map(int,s[1:-1].split(','))
 
 class Config():
    configfile = "scantelope.cfg"
    offset = [0,0]
 
    # should make data more generic with portrait and landscape modes, then sections in configuration file for each scanner
-   data={'avision-600':[generateCropA(1634,2502,182,224),
+   data={}
+   olddefaults={'avision-600':[generateCropA(1634,2502,182,224),
                         '-crop 8x12-34-38@! -shave 20x20',
                         '-l 14.5 -x 85 -t 10 -y 125'],
           
@@ -46,17 +58,20 @@ class Config():
                          '-crop 12x8-38-34@! -shave 10x10',
                          '--mode Gray -l 45 -t 10 -x 130 -y 90 --opt_nowarmup=yes --opt_nogamma=yes']} #90=275
 
-   @staticmethod
-   def generateData(res,dx,dy,x,y):
-      factor = res / 300
-      crop = '-crop 8x12-%d-%d@! -shave %dx%d'%(17*factor,19*factor,10*factor,10*factor)
-      return [generateCropA(dx*factor,dy*factor,x*factor,y*factor),crop,'']
 
    @staticmethod
-   def createCalibratedConfig(dx,dy,x,y):
+   def generateData(res,dx,dy,x,y,options=''):
+      landscape = (dx > dy)
+      factor = res / 300     
+      return [generateCropA(dx*factor,dy*factor,x*factor,y*factor),CropB(landscape,factor),options]
+
+   @staticmethod
+   def createConfig(dx,dy,x,y,name='custom'):
+      #should test for existence in config file?
       for res in Config.validResolutions():
-         Config.data['custom-'+str(res)] = Config.generateData(res,dx,dy,x,y)
-      return 'custom-%d'%Config.res
+         Config.data['%s-%d'%(name,res)] = Config.generateData(res,dx,dy,x,y)
+      return '%s-%d'%(name,Config.res)
+
    @staticmethod
    def validResolutions():
       return [300,600]
@@ -87,17 +102,25 @@ class Config():
            f.close()
 
        f=open(Config.configfile,'w')       
-       if not c.has_section('defaults'):
-           c.add_section('defaults')
-       c.set('defaults','scanner',Config.scanner)
-       c.set('defaults','offset',str(Config.offset))
-       c.set('defaults','resolution',str(Config.res))
+
+       Config.setConfig(c,'defaults',[['scanner',       Config.scanner],
+                                      ['offset',    str(Config.offset)],
+                                      ['resolution',   str(Config.res)]])
+
        c.write(f)
        f.close()
        print "Configuration file saved"
 
    @staticmethod
+   def setConfig(cparser,section,pairs):
+      if not cparser.has_section(section):
+         cparser.add_section(section)
+      for k,v in pairs:
+         cparser.set(section,k,v)
+
+   @staticmethod
    def loadFile():
+      # returns false if no file or no 'defaults' section
        if not exists(Config.configfile):
            print "Configuration file not found..."
            return False
@@ -105,15 +128,22 @@ class Config():
            f=open(Config.configfile,'r')
            c=cfgParser()
            c.readfp(f)
-           if c.has_section('defaults'):
-               Config.scanner = c.get('defaults','scanner')
-               Config.offset = eval(c.get('defaults','offset'))
-               Config.res = c.getint('defaults','resolution')
-               f.close()
-               return True
+           
+           retVal = False
+           for s in c.sections():
+              if s == 'defaults':
+                 retVal = True
+                 Config.scanner = c.get('defaults','scanner')
+                 Config.offset = evalPair(c.get('defaults','offset'))
+                 Config.res = c.getint('defaults','resolution')
+                 # switch here?
+              else:
+                 pass
+                 #generate data dict based on cfg file
            else:
                print "Missing 'defaults' section"
-               return False
+           f.close()
+           return retVal
 
    @staticmethod
    def getWellAV(fn,pref):
@@ -158,7 +188,7 @@ class Config():
            return -1
 
    @staticmethod
-   def readInitialConfig(key):
+   def readInitialConfig():
 
       if not Config.loadFile():
          Config.switch(key)

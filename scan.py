@@ -63,7 +63,7 @@ class ScanControl(threading.Thread):
       self.calibrating= False
 
       g=globals()
-      res,g['getWell'], g['getFileFromWell'] = Config.readInitialConfig('avision-600')
+      res,g['getWell'], g['getFileFromWell'] = Config.readInitialConfig()
 
       self.setNextRes(res)
       self.setResFromNext()
@@ -252,7 +252,7 @@ class ScanControl(threading.Thread):
       x,y,dx,dy = decode.findcode.calibrate("/tmp/calib1.tif")
       print (x,y,dx,dy)
       self.acquire()
-      Config.switch(Config.createCalibratedConfig(dx,dy,x,y))
+      Config.switch(Config.createConfig(dx,dy,x,y))
       self.calibrating = False
       self.release()
 
@@ -261,7 +261,7 @@ class ScanControl(threading.Thread):
       self.setResFromNext()
 
       #sn = self.scannerNames[self.whichScanner]
-      #cropA,cropB,position,density,res = Config.configByScannerAndRes(sn,self.res)
+      #cropA,cropB,position,density,res = Config.configByScannerAndRes(sn,Config.res)
       #self.setNextRes(res) 
 
       cropA,cropB,position = Config.currentConfiguration()
