@@ -139,7 +139,7 @@ class MyHandler(BaseHTTPRequestHandler):
   xoff - x offset (for all scanners) =  %d<br>
   yoff - y offset                    =  %d<br>
  <br>
-  save - saves configuration file<br>
+  save - saves configuration file (do this before making live edits to scantelope.cfg)<br>
   calibrate - initiates automatic calibration (and saves custom settings)<br>
  <br>%s<br><img width=500 src="/images%s/inner.jpg"/>
  <br>%s

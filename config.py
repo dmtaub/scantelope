@@ -23,10 +23,15 @@ Configuration module for Scantelope.
 """
 
 from ConfigParser import NoOptionError, SafeConfigParser as cfgParser
-from os.path import exists
+from os.path import exists, getmtime
+from datetime import datetime
 
 cfgParser.getpair = lambda self,section,key: map(int,self.get(section,key)[1:-1].split(','))
 
+def modification_date(filename):
+    t = getmtime(filename)
+    retVal = str(datetime.fromtimestamp(t))
+    return retVal.split('.')[0]
 
 def generateCropA(dx,dy,x,y):
    def byOffset(off): 
@@ -45,6 +50,7 @@ def CropB(landscape,factor):
 
 class Config():
    configfile = "scantelope.cfg"
+
    offset = [0,0]
    names = set()
 
@@ -136,7 +142,9 @@ class Config():
 
        c.write(f)
        f.close()
+       Config.configModified = modification_date(Config.configfile)
        print "Configuration file saved"
+
 
    @staticmethod
    def setConfig(cparser,section,pairs):
@@ -227,16 +235,22 @@ class Config():
            return -1
 
    @staticmethod
-   def readInitialConfig(key = 'avision-300'):
+   def reloadConfig(key = 'avision-300'):
+      Config.data = {}
       # maybe want to choose default key more intelligently (name of found scanners?)
 #      Config.res = Config.validResolutions()[0]
       if not Config.loadFile():
          Config.switch(key)
          Config.saveFile()
       else:
-         Config.makeKey()
+         try:
+            Config.makeKey()
+         except KeyError, e:
+            print "Error:", e, "defaulting to",key
+            Config.switch(key)
          Config.setMethods()
          print 'Loaded configuration'
+      Config.configModified = modification_date(Config.configfile)
       return Config.res
 
    @staticmethod

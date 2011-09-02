@@ -21,24 +21,15 @@
 Scanner interface module (threaded) for Scantelope.
 
 """
-
-from os import path, listdir
-#import pri
-
 import threading
 
 from time import sleep,strftime,time
 from subprocess import Popen, PIPE
 from datetime import datetime
 import decode
-from config import Config
+from config import Config, modification_date
 defaultfn=['split','tif']
 defaultdir= '/tmp/'
-
-def modification_date(filename):
-    t = path.getmtime(filename)
-    retVal = str(datetime.fromtimestamp(t))
-    return retVal.split('.')[0]
 
 def strtime():
    return strftime("%Y-%m-%d %H:%M:%S")
@@ -62,8 +53,7 @@ class ScanControl(threading.Thread):
        self.isScanning = False
        self.calibrating= False
        
-       self.configModified = modification_date(Config.configfile)
-       res = Config.readInitialConfig()
+       res = Config.reloadConfig()
        
        self.setNextRes(res)
        self.setResFromNext()
@@ -124,10 +114,11 @@ class ScanControl(threading.Thread):
 
    def setConfigFromNext(self):
        modDate= modification_date(Config.configfile)
-       if modDate != self.configModified:
+       if modDate != Config.configModified:
            print "Configuration modified, reloading..."
-           self.configModified = modDate 
-
+           self.acquire()
+           Config.reloadConfig(Config.currentKey)
+           self.release()
 
        self.acquire()
        if self.nextConfig != None:
@@ -181,7 +172,7 @@ class ScanControl(threading.Thread):
        self.myDir = defaultdir
        self.ext = '.'+defaultfn[1]
        
-       self.files = self.files = [pref+str(i)+self.ext for i in range(96)] #[i for i in listdir(self.myDir) if i.find(pref) != -1 and ''.join(i.split(pref)).rstrip(self.ext).isdigit()]
+       self.files = self.files = [pref+str(i)+self.ext for i in range(96)] 
        self.files.sort()
        self.release() # ***
 
