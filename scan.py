@@ -18,7 +18,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-Scanner interface module for Scantelope.
+Scanner interface module (threaded) for Scantelope.
 
 """
 
@@ -46,60 +46,80 @@ def strtime():
 class ScanControl(threading.Thread):
    listCodes = []
    def __init__(self,event):
-      threading.Thread.__init__(self)
+       threading.Thread.__init__(self)
 
-      self.lock = threading.RLock()
-      self.event = event
+       self.lock = threading.RLock()
+       self.event = event
+       
+       self.forceRepeat = False
+       self.getFilenames()
+       self.dm = decode.DMDecoder(self.myDir,self.files)#,res = self.res)
+       self.daemon = True #This kills this thread when the main thread stops  
+       
+       self.scanners = {} 
+       self.scannerNames = {0:"none"}
 
-      self.forceRepeat = False
-      self.getFilenames()
-      self.dm = decode.DMDecoder(self.myDir,self.files)#,res = self.res)
-      self.daemon = True #This kills this thread when the main thread stops  
-      
-      self.scanners = {} 
-      self.scannerNames = {0:"none"}
-
-      self.isScanning = False
-      self.calibrating= False
-
-      res = Config.readInitialConfig()
-
-      self.setNextRes(res)
-      self.setResFromNext()
-      
+       self.isScanning = False
+       self.calibrating= False
+       
+       res = Config.readInitialConfig()
+       
+       self.setNextRes(res)
+       self.setResFromNext()
+       
 #      self.whichScanner = 0
-      self.nextScanner = 0 #bypasses checks since scanners dict is empty
-      self.setScannerFromNext()
-
-      self.nextConfig = None
+       self.nextScanner = 0 #bypasses checks since scanners dict is empty
+       self.setScannerFromNext()       
+       self.nextConfig = None
       
-      self.setDecoded({})
-      self.mostRecentUpdate = datetime.now()
-  
-      self.decodeOnly = False
+       self.setDecoded({})
+       self.mostRecentUpdate = datetime.now()      
+       self.decodeOnly = False       
 
-      self.setStatus(strtime()+'\ninitialized\n')
+       self.setStatus(strtime()+'\ninitialized\n')
+
+   def testUpdatedConfig(self):
+       self.setScannerFromNext()
+       self.setResFromNext()
+       self.setConfigFromNext()
 
    def setResFromNext(self):
-      self.acquire()
-      if self.nextRes != None:
-         Config.setRes(self.nextRes)
-         if Config.res == 300:
-            low_res = True
-         else:
-            low_res = False
-         decode.findcode.low_res = low_res         
-         self.nextRes = None
-      self.release()
+       self.acquire()
+       if self.nextRes != None:
+           Config.setRes(self.nextRes)
+           if Config.res == 300:
+               low_res = True
+           else:
+               low_res = False
+           decode.findcode.low_res = low_res         
+           self.nextRes = None
+       self.release()
 
    def setNextRes(self,res):
-      if res in Config.validResolutions():
-         self.acquire()
-         self.nextRes = res
-         self.release()
-         return True
-      else:
-         return False
+       if res in Config.validResolutions():
+           self.acquire()
+           self.nextRes = res
+           self.release()
+           return True
+       else:
+           return False
+
+   def setScannerFromNext(self):
+       self.acquire()
+       if self.nextScanner != None:
+           self.whichScanner = self.nextScanner
+           self.nextScanner = None
+       self.release()
+  
+   def setNextScanner(self,w):
+       if len(self.scanners) > w and w >= 0:
+           self.acquire()
+           self.nextScanner = w
+           self.release()
+           ret = True
+       else:
+           ret = False
+       return ret
 
    def setConfigFromNext(self):
        self.acquire()
@@ -109,30 +129,13 @@ class ScanControl(threading.Thread):
        self.release()
 
    def setNextConfig(self,config):
-      if config in Config.names:
-         self.acquire()
-         self.nextConfig = config
-         self.release()
-         return True
-      else:
-         return False
-
-   def setScannerFromNext(self):
-      self.acquire()
-      if self.nextScanner != None:
-         self.whichScanner = self.nextScanner
-         self.nextScanner = None
-      self.release()
-  
-   def setNextScanner(self,w):
-      if len(self.scanners) > w and w >= 0:
-         self.acquire()
-         self.nextScanner = w
-         self.release()
-         ret = True
-      else:
-         ret = False
-      return ret
+       if config in Config.names:
+           self.acquire()
+           self.nextConfig = config
+           self.release()
+           return True
+       else:
+           return False
 
    def getDecoded(self):
        self.acquire()
@@ -183,58 +186,58 @@ class ScanControl(threading.Thread):
        return retVal
 
    def setStatus(self,val):
-      self.acquire()
-      self.status = val
-      self.release()
+       self.acquire()
+       self.status = val
+       self.release()
 
    def getStatus(self):
-      self.acquire()
-      if self.nextRes or self.nextScanner:
-         nr = self.nextRes or Config.res
-         name = self.nextScanner != None and self.scannerNames[self.nextScanner] or "same"
-         next = " -> %s %ddpi\n"%(name,nr)
-      else:
-         next = "\n"
-      c = self.scannerNames[self.whichScanner]+" as "+Config.active+" at "+str(Config.res)+"dpi"+next
-      c += self.status[:]
-      self.release()
-      return c
+       self.acquire()
+       if self.nextRes or self.nextScanner:
+           nr = self.nextRes or Config.res
+           name = self.nextScanner != None and self.scannerNames[self.nextScanner] or "same"
+           next = " -> %s %ddpi\n"%(name,nr)
+       else:
+           next = "\n"
+       c = self.scannerNames[self.whichScanner]+" as "+Config.active+" at "+str(Config.res)+"dpi"+next
+       c += self.status[:]
+       self.release()
+       return c
 
    def updateStatus(self,val):
-      self.acquire()
-      self.status += val
-      self.release()
+       self.acquire()
+       self.status += val
+       self.release()
 
    def reset(self):
-      self.resetDecoded()
-      self.acquire()
-      self.dm.__init__(self.myDir,self.files)
-      self.mostRecentUpdate = datetime.now()
-      self.release()
+       self.resetDecoded()
+       self.acquire()
+       self.dm.__init__(self.myDir,self.files)
+       self.mostRecentUpdate = datetime.now()
+       self.release()
 
    def resetDecoded(self):
-      self.setDecoded({})
+       self.setDecoded({})
 
    def initScan(self):
-      self.acquire() # ***
-      self.dm.__init__()
-      self.release() # ***
-      print "legacy code reached"
-      self.setStatus(strtime()+'\ndecoder initialized\n')
+       self.acquire() # ***
+       self.dm.__init__()
+       self.release() # ***
+       print "legacy code reached"
+       self.setStatus(strtime()+'\ndecoder initialized\n')
       
 
 #   def stopScan(self):
 #      self.setStatus(strtime()+'\nstopped')
 
    def autoStopScan(self):
-      self.updateStatus(strtime()+'\nautostopped')
-      self.isScanning = False #event.clear()
+       self.updateStatus(strtime()+'\nautostopped')
+       self.isScanning = False #event.clear()
       
 
    def acquire(self):
-      self.lock.acquire()
+       self.lock.acquire()
    def release(self):
-      self.lock.release()
+       self.lock.release()
         
    def findScanners(self):
        print "finding scanners..."
@@ -260,49 +263,43 @@ class ScanControl(threading.Thread):
            self.release()
 
    def calibrateNext(self):
-      self.acquire()
-      self.calibrating = True
-      self.release()
+       self.acquire()
+       self.calibrating = True
+       self.release()
 
    def _calibrate(self):
-      self.updateStatus("calibrating\n\n")
-      x,y,dx,dy = decode.findcode.calibrate("/tmp/calib1.tif")
-      print (x,y,dx,dy)
-      self.acquire()
-      Config.saveCalibrated(dx,dy,x,y,'')
-      self.calibrating = False
-      self.release()
+       self.updateStatus("calibrating\n\n")
+       x,y,dx,dy = decode.findcode.calibrate("/tmp/calib1.tif")
+       print (x,y,dx,dy)
+       self.acquire()
+       Config.saveCalibrated(dx,dy,x,y,'')
+       self.calibrating = False
+       self.release()
 
    def _shellOut(self):
-      self.setScannerFromNext()
-      self.setResFromNext()
-      self.setConfigFromNext()
-      #sn = self.scannerNames[self.whichScanner]
-      #cropA,cropB,position,density,res = Config.configByScannerAndRes(sn,Config.res)
-      #self.setNextRes(res) 
+       self.testUpdatedConfig()
+       
+       cropA,cropB,position = Config.currentConfiguration()
 
-      
-      cropA,cropB,position = Config.currentConfiguration()
-
-      if self.calibrating:
-          self._shell_obtain_fullscan()
-          self._calibrate()
-          return False
-      else:
-          self._shell_obtain_images(cropA,cropB,position)
-          return True
+       if self.calibrating:
+           self._shell_obtain_fullscan()
+           self._calibrate()
+           return False
+       else:
+           self._shell_obtain_images(cropA,cropB,position)
+           return True
    
    def _shell_obtain_fullscan(self):
-      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/calib%d.tif --batch-count=1 --resolution '+str(Config.res)+' --format=tiff ').split(),stdout=PIPE,stderr=PIPE)
-      out,err = proc.communicate()
-      self.updateStatus(out+"\n"+err+'\n')
+       proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/calib%d.tif --batch-count=1 --resolution '+str(Config.res)+' --format=tiff ').split(),stdout=PIPE,stderr=PIPE)
+       out,err = proc.communicate()
+       self.updateStatus(out+"\n"+err+'\n')
 
 
    def _shell_obtain_images(self,cropA,cropB,position):
-      proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/batch%d.tif --batch-count=1 --resolution '+str(Config.res)+' --format=tiff '+position).split(),stdout=PIPE,stderr=PIPE)
-      out,err = proc.communicate()
+       proc=Popen(['scanimage','-d',self.scanners[self.whichScanner]]+('--batch=/tmp/batch%d.tif --batch-count=1 --resolution '+str(Config.res)+' --format=tiff '+position).split(),stdout=PIPE,stderr=PIPE)
+       out,err = proc.communicate()
 
-      self.updateStatus(out+"\n"+err+'\n')
+       self.updateStatus(out+"\n"+err+'\n')
 
       ## fix tif routine:
       # i=Image.open('/tmp/batch1.tif')
@@ -314,21 +311,21 @@ class ScanControl(threading.Thread):
       # if i != None:
       #    i.save('/tmp/batch2.tif')
 
-      density = "-density %d "%Config.res
+       density = "-density %d "%Config.res
       
-      proc=Popen(('convert /tmp/batch1.tif '+density+cropA(Config.offset)+' /tmp/inner1.tif').split(),stdout=PIPE,stderr=PIPE)
-      out,err = proc.communicate()
-      self.updateStatus(out+"\n"+err+'\n')
+       proc=Popen(('convert /tmp/batch1.tif '+density+cropA(Config.offset)+' /tmp/inner1.tif').split(),stdout=PIPE,stderr=PIPE)
+       out,err = proc.communicate()
+       self.updateStatus(out+"\n"+err+'\n')
 
       # could do this stuff in openCV or PIL as well...
-      proc=Popen((('convert /tmp/inner1.tif /tmp/inner.jpg')).split(),stdout=PIPE,stderr=PIPE)
-      out,err = proc.communicate()
-      self.updateStatus(out+"\n"+err+'\n')
+       proc=Popen((('convert /tmp/inner1.tif /tmp/inner.jpg')).split(),stdout=PIPE,stderr=PIPE)
+       out,err = proc.communicate()
+       self.updateStatus(out+"\n"+err+'\n')
 
-      proc=Popen((('convert /tmp/inner1.tif '+density+cropB+' +repage '+self.myDir+self.pref+'%d'+self.ext)).split(),stdout=PIPE,stderr=PIPE)
-      out,err = proc.communicate()
+       proc=Popen((('convert /tmp/inner1.tif '+density+cropB+' +repage '+self.myDir+self.pref+'%d'+self.ext)).split(),stdout=PIPE,stderr=PIPE)
+       out,err = proc.communicate()
 
-      self.updateStatus(out+"\n"+err+'\n')
+       self.updateStatus(out+"\n"+err+'\n')
       
 
    def _doDecode(self):
@@ -342,8 +339,8 @@ class ScanControl(threading.Thread):
        flag = False
        self.acquire()
        if self.forceRepeat:
-          self.decoded = {}
-          flag = True
+           self.decoded = {}
+           flag = True
        for k,v in output.items():
            self.decoded[k] = [v,strtime(),
                               modification_date(self.dm.myDir+k)]
@@ -368,34 +365,28 @@ class ScanControl(threading.Thread):
        return output,failed
 
    def enableScan(self):
-      self.acquire()
-      self.isScanning = True
-      self.release()
+       self.acquire()
+       self.isScanning = True
+       self.release()
 
    def run(self):
        #self.findScanners()
        origNumScanners = len(self.scanners)
        while 1:
-          if self.isScanning:
-             #self.acquire()
-             #self.isScanning = False
-             #self.release()
-             if self.scanners.has_key(self.whichScanner):
-                self.setStatus('\n'.join(self.getStatus().strip().split('\n')[-10:])+strtime())
-                if self._shellOut():
-                  self._doDecode()
-             elif self.decodeOnly:
-                self._doDecode()
-                if not self.forceRepeat:
-                   self.decodeOnly = False
-             elif len(self.scanners) < origNumScanners:
-                self.findScanners() #look if disconnected
-                #maybe limit to looking 5 times and then wait 100-200 times before trying again
-             print "WAIT"
-             self.event.wait()          
-             print "DONE WAIT"
-
-#          else:
-             self.event.clear()
-             
-          # sleep?
+           if self.isScanning:
+               if self.scanners.has_key(self.whichScanner):
+                   self.setStatus('\n'.join(self.getStatus().strip().split('\n')[-10:])+strtime())
+                   if self._shellOut():
+                       self._doDecode()
+               elif self.decodeOnly:
+                   self._doDecode()
+                   if not self.forceRepeat:
+                       self.decodeOnly = False
+               elif len(self.scanners) < origNumScanners:
+                   self.findScanners() #look if disconnected
+                #maybe limit to looking 5 times and then wait 50 times before trying again
+               print "WAIT"
+               self.event.wait()          
+               print "DONE WAIT"
+               self.event.clear()             
+           # sleep?
