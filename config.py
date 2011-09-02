@@ -100,7 +100,7 @@ class Config():
       key = Config.active + '-'+str(Config.res)
       if Config.has_key(key):
          Config.currentKey = key
-         print "currentkey:",key
+         print "key set to",key
       else:
          raise KeyError(key+" missing from configuration")
 
@@ -270,6 +270,7 @@ class Config():
       Config.res = int(resolution)      
       Config.active = active
       Config.currentKey = key
+      print "key set to",key
       
       Config.setMethods()
 

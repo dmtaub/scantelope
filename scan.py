@@ -62,6 +62,7 @@ class ScanControl(threading.Thread):
        self.isScanning = False
        self.calibrating= False
        
+       self.configModified = modification_date(Config.configfile)
        res = Config.readInitialConfig()
        
        self.setNextRes(res)
@@ -122,6 +123,12 @@ class ScanControl(threading.Thread):
        return ret
 
    def setConfigFromNext(self):
+       modDate= modification_date(Config.configfile)
+       if modDate != self.configModified:
+           print "Configuration modified, reloading..."
+           self.configModified = modDate 
+
+
        self.acquire()
        if self.nextConfig != None:
            Config.setActive(self.nextConfig)
@@ -270,7 +277,7 @@ class ScanControl(threading.Thread):
    def _calibrate(self):
        self.updateStatus("calibrating\n\n")
        x,y,dx,dy = decode.findcode.calibrate("/tmp/calib1.tif")
-       print (x,y,dx,dy)
+       #print (x,y,dx,dy)
        self.acquire()
        Config.saveCalibrated(dx,dy,x,y,'')
        self.calibrating = False
@@ -385,8 +392,8 @@ class ScanControl(threading.Thread):
                elif len(self.scanners) < origNumScanners:
                    self.findScanners() #look if disconnected
                 #maybe limit to looking 5 times and then wait 50 times before trying again
-               print "WAIT"
-               self.event.wait()          
-               print "DONE WAIT"
-               self.event.clear()             
+               #print "WAIT"
+               self.event.wait() #stop here until event set from serv.py
+               #print "DONE WAIT"
+               self.event.clear() #means that it will wait the next time arount
            # sleep?

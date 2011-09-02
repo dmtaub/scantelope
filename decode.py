@@ -60,7 +60,7 @@ class DMDecoder():
       failNum=0
       lastCVTime = 0
       timeForCV = 0
-      print "Files to decode: ",len(self.files)
+      print "\nFiles to decode: ",len(self.files)
       stop = False
 #      import pdb;pdb.set_trace()
       

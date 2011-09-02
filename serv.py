@@ -58,211 +58,201 @@ from os.path import exists
 from os import stat
 from stat import * 
 
-
-def modification_date(filename):
-    t = path.getmtime(filename)
-    retVal = str(datetime.fromtimestamp(t))
-    return retVal.split('.')[0]
-
-
-
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     pass
-
 
 def resetTimer(): 
     MyHandler.sc.enableScan()
     MyHandler.event.set()
-      
 
 class MyHandler(BaseHTTPRequestHandler):
-   
-   def wwrite(self,data,line_break = None):
-      if line_break != None:
-         self.wfile.write(data + line_break) # could be <br> or \n
-      else:
-         self.wfile.write(data)
-
-   def tag(self, text, tag = 'html'):
-          return "<{0}>{1}</{0}>".format(tag,text)
-
-   def hwrite(self,data):
-      self.wwrite(self.tag(data),None)
-
-   def do_GET(self):
-       wwrite=self.wwrite
-       hwrite=self.hwrite
-       try:
-           if self.path.startswith("/config"):
-               self.send_response(200)
-               self.send_header('Content-type','text/html')
-               self.end_headers()
-               status = ""
-               if self.path[8:17] == "calibrate":
-                   MyHandler.sc.calibrateNext()
-                   status = ("calibrating...")
-               elif self.path[8:11] == "res":
-                   which = self.path[11:].strip('/')
-                   if which.isdigit() and MyHandler.sc.setNextRes(int(which)):
-                       status = ("selected resolution "+which)
-                   else:
-                       status = ("invalid resolution")
-               elif self.path[8:11] == "use":
-                   which = self.path[11:].strip('/')
-                   if MyHandler.sc.setNextConfig(which):                   
-                       status =("selected configuration: "+which)
-                   else:
-                       status = ("unknown configuration.")
-               elif self.path[8:12] == "xoff":
-                   # might like some additional error checks on these...
-                   which = self.path[12:].strip('/')
-                   if which.replace('-','',1).isdigit():
-                       Config.offset[0] = int(which)
-                       status =("selected xoffset "+which)
-                   else:
-                       status = ("invalid xoffset")
-               elif self.path[8:12] == "yoff":
-                   which = self.path[12:].strip('/')
-                   if which.replace('-','',1).isdigit():
-                       Config.offset[1] = int(which)
-                       status = ("selected yoffset "+which)
-                   else:
-                       status = ("invalid yoffset")
-               elif self.path[8:13] == "save":
-                   Config.saveFile()
-                   status = "Saved!"
-               elif self.path[8:] == "":
-                   pass
-               else:
-                   status = "unknown config command [%s]"%self.path[8:]
-               thetime = datetime.now().isoformat()
-               hwrite("""<head><META HTTP-EQUIV="refresh" CONTENT="5; /config/">
-<title>Configuration Options</title></head>
-<body>
-<h2>%s</h2>
-<br>
-<u>valid commands:</u><br>
-  use - set configuration to one of: %s = %s<br>
-<br>
-  res - resolution                  =  %d<br>
- xoff - x offset (for all scanners) =  %d<br>
- yoff - y offset                    =  %d<br>
-<br>
- save - saves configuration file<br>
- calibrate - initiates automatic calibration (and saves custom settings)<br>
-<br>%s<br><img width=500 src="/images%s/inner.jpg"/>
-<br>%s
-</body>
-"""%(status,
-str(list(Config.names)).replace("'",''),
-Config.active,
-Config.res,
-Config.offset[0],
-Config.offset[1],
-thetime,thetime,MyHandler.sc.getStatus().replace('\n','<br>')))
-
-           elif self.path.startswith("/scan"):
-               self.send_response(200)
-               self.send_header('Content-type','text/plain')
-               self.end_headers() 
-               if self.path.endswith("list"):
-                   l='\n'.join(MyHandler.sc.getScanners().values())
-                   wwrite(l)
-               elif self.path[6:12] == "select":
-                   which = self.path[12:].strip('/')
-                   if which.isdigit() and MyHandler.sc.setNextScanner(int(which)):
-                       wwrite("selected scanner "+which)
-                   else:
-                       wwrite("invalid scanner index")
-               elif self.path.endswith("reset"):
-                   MyHandler.sc.reset()
-                   wwrite("reset decoded")
-               elif self.path.endswith("status"):
-                   wwrite(MyHandler.sc.getStatus())
-               else:
-                   wwrite("unknown scan command")
-
-           elif self.path.startswith("/images") and self.path.endswith('.jpg'):
-               subpath = self.path.split('/')[-1][:-4]
-               if subpath.find('_') != -1:
-                   fn = MyHandler.fileprot%Config.getFileFromWell(subpath)
-               else:
-                   proto= MyHandler.sc.myDir+'%s.jpg'
-                   fn = proto%subpath
-               #print fn
-               if exists(fn):
-                   f = open(fn,"rb")
-                   size = stat(fn)[ST_SIZE]
-
-                   self.send_response(200)
-                   self.send_header('Content-type','image/jpeg')
-                   self.send_header('Content-length',size)
-                   self.end_headers() 
-                   self.wfile.write(f.read())
-                   
-                   f.close()
-               else:
-                   self.send_response(404)
-                   self.send_header('Content-type','text/plain')
-                   self.end_headers() 
-                   wwrite("error: file not found")
-
-           elif self.path.strip('/') == '':
-               self.send_response(200)
-               self.send_header('Content-type','text/plain')
-               self.end_headers()
-               wwrite("TUBE,BARCODE,DECODE_TIME,FILEMOD_TIME\n")
-
-               decoded = MyHandler.sc.getNewDecoded(MyHandler.lastUpdateTime)
-               if decoded == -1:
-                   listCodes = MyHandler.sc.getCodes() #***
-               else:
-                   MyHandler.lastUpdateTime = datetime.now()
-                   listCodes = decoded.iteritems()
-                   listCodes = map(lambda x: (Config.getWell(x[0],MyHandler.sc.pref),
-                                              x[1][0],x[1][1],x[1][2]),
-                                   listCodes)
-                   listCodes.sort()
-                   MyHandler.sc.setCodes(listCodes) #***
-               
-               for well,code,decTime,modTime in listCodes:
-                   wwrite("%s,%s,%s,%s\n"%(well,code,decTime,modTime))
-
-           elif self.path.endswith('decode'):
-               self.send_response(200)
-               self.send_header('Content-type','text/plain')
-               self.end_headers()
-               wwrite("Decode Command\n")
-               MyHandler.sc.decodeOnly = True
-           else:
-               self.send_error(404,'Command/File not found')
-
-           resetTimer()
-           #MyHandler.event.clear()
-           return
-      
-       except IOError:
-           self.send_error(404,'File Not Found: %s' % self.path)
-
-    ## in case post is needed, use the following (from Jon Berg , turtlemeat.com)
-    #
-    # def do_POST(self):
-    #     global rootnode
-    #     try:
-    #         ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
-    #         if ctype == 'multipart/form-data':
-    #             query=cgi.parse_multipart(self.rfile, pdict)
-    #         self.send_response(301)
-            
-    #         self.end_headers()
-    #         upfilecontent = query.get('upfile')
-    #         print "filecontent", upfilecontent[0]
-    #         self.wfile.write("<HTML>POST OK.<BR><BR>");
-    #         self.wfile.write(upfilecontent[0]);
-            
-    #     except :
-    #         pass
-
+    def log_message(self, format, *args):
+        pass
+    def wwrite(self,data,line_break = None):
+        if line_break != None:
+            self.wfile.write(data + line_break) # could be <br> or \n
+        else:
+            self.wfile.write(data)
+ 
+    def tag(self, text, tag = 'html'):
+        return "<{0}>{1}</{0}>".format(tag,text)
+ 
+    def hwrite(self,data):
+        self.wwrite(self.tag(data),None)
+ 
+    def do_GET(self):
+        wwrite=self.wwrite
+        hwrite=self.hwrite
+        try:
+            if self.path.startswith("/config"):
+                self.send_response(200)
+                self.send_header('Content-type','text/html')
+                self.end_headers()
+                status = ""
+                if self.path[8:17] == "calibrate":
+                    MyHandler.sc.calibrateNext()
+                    status = ("calibrating...")
+                elif self.path[8:11] == "res":
+                    which = self.path[11:].strip('/')
+                    if which.isdigit() and MyHandler.sc.setNextRes(int(which)):
+                        status = ("selected resolution "+which)
+                    else:
+                        status = ("invalid resolution")
+                elif self.path[8:11] == "use":
+                    which = self.path[11:].strip('/')
+                    if MyHandler.sc.setNextConfig(which):                   
+                        status =("selected configuration: "+which)
+                    else:
+                        status = ("unknown configuration.")
+                elif self.path[8:12] == "xoff":
+                    # might like some additional error checks on these...
+                    which = self.path[12:].strip('/')
+                    if which.replace('-','',1).isdigit():
+                        Config.offset[0] = int(which)
+                        status =("selected xoffset "+which)
+                    else:
+                        status = ("invalid xoffset")
+                elif self.path[8:12] == "yoff":
+                    which = self.path[12:].strip('/')
+                    if which.replace('-','',1).isdigit():
+                        Config.offset[1] = int(which)
+                        status = ("selected yoffset "+which)
+                    else:
+                        status = ("invalid yoffset")
+                elif self.path[8:13] == "save":
+                    Config.saveFile()
+                    status = "Saved!"
+                elif self.path[8:] == "":
+                    pass
+                else:
+                    status = "unknown config command [%s]"%self.path[8:]
+                thetime = datetime.now().isoformat()
+                hwrite("""<head><META HTTP-EQUIV="refresh" CONTENT="5; /config/">
+ <title>Configuration Options</title></head>
+ <body>
+ <h2>%s</h2>
+ <br>
+ <u>valid commands:</u><br>
+   use - set configuration to one of: %s = %s<br>
+ <br>
+   res - resolution                  =  %d<br>
+  xoff - x offset (for all scanners) =  %d<br>
+  yoff - y offset                    =  %d<br>
+ <br>
+  save - saves configuration file<br>
+  calibrate - initiates automatic calibration (and saves custom settings)<br>
+ <br>%s<br><img width=500 src="/images%s/inner.jpg"/>
+ <br>%s
+ </body>
+ """%(status,
+ str(list(Config.names)).replace("'",''),
+ Config.active,
+ Config.res,
+ Config.offset[0],
+ Config.offset[1],
+ thetime,thetime,MyHandler.sc.getStatus().replace('\n','<br>')))
+ 
+            elif self.path.startswith("/scan"):
+                self.send_response(200)
+                self.send_header('Content-type','text/plain')
+                self.end_headers() 
+                if self.path.endswith("list"):
+                    l='\n'.join(MyHandler.sc.getScanners().values())
+                    wwrite(l)
+                elif self.path[6:12] == "select":
+                    which = self.path[12:].strip('/')
+                    if which.isdigit() and MyHandler.sc.setNextScanner(int(which)):
+                        wwrite("selected scanner "+which)
+                    else:
+                        wwrite("invalid scanner index")
+                elif self.path.endswith("reset"):
+                    MyHandler.sc.reset()
+                    wwrite("reset decoded")
+                elif self.path.endswith("status"):
+                    wwrite(MyHandler.sc.getStatus())
+                else:
+                    wwrite("unknown scan command")
+ 
+            elif self.path.startswith("/images") and self.path.endswith('.jpg'):
+                subpath = self.path.split('/')[-1][:-4]
+                if subpath.find('_') != -1:
+                    fn = MyHandler.fileprot%Config.getFileFromWell(subpath)
+                else:
+                    proto= MyHandler.sc.myDir+'%s.jpg'
+                    fn = proto%subpath
+                #print fn
+                if exists(fn):
+                    f = open(fn,"rb")
+                    size = stat(fn)[ST_SIZE]
+ 
+                    self.send_response(200)
+                    self.send_header('Content-type','image/jpeg')
+                    self.send_header('Content-length',size)
+                    self.end_headers() 
+                    self.wfile.write(f.read())
+                    
+                    f.close()
+                else:
+                    self.send_response(404)
+                    self.send_header('Content-type','text/plain')
+                    self.end_headers() 
+                    wwrite("error: file not found")
+ 
+            elif self.path.strip('/') == '':
+                self.send_response(200)
+                self.send_header('Content-type','text/plain')
+                self.end_headers()
+                wwrite("TUBE,BARCODE,DECODE_TIME,FILEMOD_TIME\n")
+ 
+                decoded = MyHandler.sc.getNewDecoded(MyHandler.lastUpdateTime)
+                if decoded == -1:
+                    listCodes = MyHandler.sc.getCodes() #***
+                else:
+                    MyHandler.lastUpdateTime = datetime.now()
+                    listCodes = decoded.iteritems()
+                    listCodes = map(lambda x: (Config.getWell(x[0],MyHandler.sc.pref),
+                                               x[1][0],x[1][1],x[1][2]),
+                                    listCodes)
+                    listCodes.sort()
+                    MyHandler.sc.setCodes(listCodes) #***
+                
+                for well,code,decTime,modTime in listCodes:
+                    wwrite("%s,%s,%s,%s\n"%(well,code,decTime,modTime))
+ 
+            elif self.path.endswith('decode'):
+                self.send_response(200)
+                self.send_header('Content-type','text/plain')
+                self.end_headers()
+                wwrite("Decode Command\n")
+                MyHandler.sc.decodeOnly = True
+            else:
+                self.send_error(404,'Command/File not found')
+ 
+            resetTimer()
+            return
+       
+        except IOError:
+            self.send_error(404,'File Not Found: %s' % self.path)
+ 
+     ## in case post is needed, use the following (from Jon Berg , turtlemeat.com)
+     #
+     # def do_POST(self):
+     #     global rootnode
+     #     try:
+     #         ctype, pdict = cgi.parse_header(self.headers.getheader('content-type'))
+     #         if ctype == 'multipart/form-data':
+     #             query=cgi.parse_multipart(self.rfile, pdict)
+     #         self.send_response(301)
+             
+     #         self.end_headers()
+     #         upfilecontent = query.get('upfile')
+     #         print "filecontent", upfilecontent[0]
+     #         self.wfile.write("<HTML>POST OK.<BR><BR>");
+     #         self.wfile.write(upfilecontent[0]);
+             
+     #     except :
+     #         pass
+ 
 def main():
 
       MyHandler.event = threading.Event()
