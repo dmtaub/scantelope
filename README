@@ -49,7 +49,7 @@ INSTALLATION:
  ARCH defaults to 'i386' but 'amd64' and 'arm' are also valid. The script requires a good amount of space 
  in /tmp or you can change the directory/comment out the 'cd' call. Feel free to delete installation 
  directories after install. Before the scanner will work, after installing new drivers, it may be necessary
- to unplug-replug the scanner and/or relogin before running serv.py.
+ to unplug-replug the scanner and/or restar/relogin before running serv.py.
 
   0) install all dependencies
     a) required packages: cmake python-numpy g++ python-dev git-core autoconf automake libtool sane
@@ -71,12 +71,22 @@ INTERFACE:
     http://localhost:2233{command}
 
  replace {command} with:       in order to:
-      /                        view CSV of most-recently decoded 
+
+      /scan/status             show current server settings and most recent log message
       /scan/list               list available scanners
-      /scan/status             show current settings and recent log messages
-      /scan/select/{0,1...n}   select scanner from list ( default 0 )
-      /scan/setres/{600|300}   select resolution  (default 600 )
-      /images/n_m.jpg          view image from row n (0-7) column m (0-11)
+      /scan/select/{0,1...n}   select scanner from list 
+
+      /config/                 view current "inner" image and show options
+             /use/{cfgName}      use configuration {cfgName} for current scanner
+             /res/{600|300}      select resolution 
+             /xoff/{integer}     select xoffset
+             /yoff/{integer}     select yoffst
+      /config/save             saves current configuration to a file
+      /config/calibrate        automatically configure box position/boundaries and save as default
+
+      /                        view CSV of most-recently decoded 
+      /images/n_m.jpg          view image from row n (0-7) and column m (0-11)
+      /images/inner.jpg        view full plate image
 
  The scanning should start on first http access, and will stop automatically 
 

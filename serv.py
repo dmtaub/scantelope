@@ -31,13 +31,13 @@ replace {command} with:       in order to:
       /scan/select/{0,1...n}   select scanner from list 
 
       /config/                 view current "inner" image and show options
-      /config/use/{name}       use configuration "name" for current scanner
-      /config/res/{600|300}    select resolution 
-      /config/xoff/{integer}   select xoffset
-      /config/yoff/{integer}   select yoffst
+      /config/use/{cfgName}      use configuration {cfgName} for current scanner
+      /config/res/{600|300}      select resolution 
+      /config/xoff/{integer}     select xoffset
+      /config/yoff/{integer}     select yoffst
 
       /config/save             saves current configuration to a file
-      /config/calibrate        automatically configure box position/boundaries and saves
+      /config/calibrate        automatically configure box position/boundaries and save as default
 
       /                        view CSV of most-recently decoded 
       /images/n_m.jpg          view image from row n (0-7) and column m (0-11)
