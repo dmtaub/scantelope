@@ -49,7 +49,7 @@ INSTALLATION:
  ARCH defaults to 'i386' but 'amd64' and 'arm' are also valid. The script requires a good amount of space 
  in /tmp or you can change the directory/comment out the 'cd' call. Feel free to delete installation 
  directories after install. Before the scanner will work, after installing new drivers, it may be necessary
- to unplug-replug the scanner and/or restar/relogin before running serv.py.
+ to unplug-replug the scanner and/or restart/relogin before running serv.py.
 
   0) install all dependencies
     a) required packages: cmake python-numpy g++ python-dev git-core autoconf automake libtool sane

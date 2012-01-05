@@ -26,6 +26,9 @@ from ConfigParser import NoOptionError, SafeConfigParser as cfgParser
 from os.path import exists, getmtime
 from datetime import datetime
 
+from socket import gethostname
+CUSTOM_NAME = "custom_"+gethostname()
+
 cfgParser.getpair = lambda self,section,key: map(int,self.get(section,key)[1:-1].split(','))
 
 def modification_date(filename):
@@ -90,8 +93,10 @@ class Config():
       print "Added <",name,"> to presets."
      
    @staticmethod
-   def createDataEntry(dx,dy,x,y,name='custom'):
+   def createDataEntry(dx,dy,x,y,name=None):
       #should test for existence in config file?
+      if name == None:
+          name = CUSTOM_NAME
       for res in Config.validResolutions():
          Config.data['%s-%d'%(name,res)] = Config.generateData(res,dx,dy,x,y)
       Config.names.add(name)
@@ -233,6 +238,16 @@ class Config():
            return 84-12*(7-int(w[0]))+(11-int(w[1]))
        else:
            return -1
+   @staticmethod
+   def hasCustom(key):
+      #returns key if no custom entry found
+       name,res=key.split('-')
+       testKey = CUSTOM_NAME+'-'+res
+       if Config.data.has_key(testKey):
+           ret = testKey
+       else:
+           ret = key
+       return ret
 
    @staticmethod
    def reloadConfig(key = 'avision-300'):
@@ -240,6 +255,7 @@ class Config():
       # maybe want to choose default key more intelligently (name of found scanners?)
 #      Config.res = Config.validResolutions()[0]
       if not Config.loadFile():
+         key = Config.hasCustom(key)
          Config.switch(key)
          Config.saveFile()
       else:
