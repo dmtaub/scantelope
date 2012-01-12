@@ -113,7 +113,7 @@ class ScanControl(threading.Thread):
        return ret
 
    def setConfigFromNext(self):
-       modDate= modification_date(Config.configfile)
+       modDate= modification_date(customDir)
        if modDate != Config.configModified:
            print "Configuration modified, reloading..."
            self.acquire()

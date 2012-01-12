@@ -42,6 +42,8 @@ FILES:
   *                           other files are subroutines, supporting files, etc
 
 INSTALLATION:
+ May need to do this on 64-bit: ln -s /usr/lib/x86_64-linux-gnu/libtiff.so.4.3.4 /usr/lib/libtiff.so.3
+
  NOTE: install.sh is an installation script for a debian-based (ubuntu, mint, etc) system.
  You may run this as user with sudo access, but make sure to check the SCANUSER and ARCH variables.
  WARNING: this script will replace your libsane-avision drivers with binary drivers from the manufacturer.
