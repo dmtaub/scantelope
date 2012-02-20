@@ -25,7 +25,7 @@ Configuration module for Scantelope.
 from ConfigParser import NoOptionError, SafeConfigParser as cfgParser
 from os.path import exists, getmtime, isdir
 from os import getenv, listdir, mkdir
-HOMEDIR = getenv("HOME")
+HOMEDIR = getenv("HOME") or '/tmp/'
 customDir = HOMEDIR+'/.scantelope'
 
 from datetime import datetime
