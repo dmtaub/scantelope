@@ -27,7 +27,7 @@ from time import sleep,strftime,time
 from subprocess import Popen, PIPE
 from datetime import datetime
 import decode
-from config import Config, modification_date
+from config import Config, modification_date, customDir
 defaultfn=['split','tif']
 defaultdir= '/tmp/'
 
