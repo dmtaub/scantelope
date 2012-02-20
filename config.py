@@ -79,8 +79,8 @@ class Config():
                                   ['dx',    str(dx)],
                                   ['dy',   str(dy)],
                                   ['options', str(options)]])
-      Config.saveFile([callback],customDir+'/'+CUSTOM_NAME)
-      print "Added <",name,"> to presets."
+      Config.saveFile(customDir+'/'+CUSTOM_NAME,[callback])
+      print "\tAdded Calibration <",name,"> to presets."
      
    @staticmethod
    def createDataEntry(dx,dy,x,y,name=None):
@@ -118,7 +118,7 @@ class Config():
       Config.setMethods()
 
    @staticmethod
-   def saveFile(callbacks = [],filename=None):
+   def saveFile(filename=None,callbacks = []):
        if filename == None:
          filename = Config.configfile
        c=cfgParser()
@@ -140,7 +140,7 @@ class Config():
        c.write(f)
        f.close()
        Config.configModified = modification_date(customDir)
-       print "Configuration file saved"
+       print "Configuration file<%s> saved"%filename
 
 
    @staticmethod
@@ -161,14 +161,14 @@ class Config():
          print e
          return False
       name = Config.createDataEntry(dx,dy,origin[0],origin[1],section)
-      print "Added <",name,"> to presets."
+      print "\tAdded <",name,"> to presets."
 
    @staticmethod
    def loadLocalFiles():
      retVal = False
      if isdir(customDir):
        for filename in listdir(customDir):
-         retVal |= loadFile(filename)  
+         retVal |= Config.loadFile(customDir +'/'+filename)  
      else:
        mkdir(customDir)
      return retVal
@@ -177,11 +177,14 @@ class Config():
    def loadFile(cfile=None):
       retVal = False
       if cfile == None:
-        cfile=Config.configfile  
+        cfile=Config.configfile 
+        hostnameMatch = False
+      else:  
+        hostnameMatch = (customDir+'/'+CUSTOM_NAME == cfile)
       # returns false if no file or no 'defaults' section
-      print "Processing conf <%s>"%cfile,
+      print "Processing conf <%s>"%cfile
       if not exists(cfile):
-         print "file not found..."
+         print "\tfile not found..."
       else:
          f=open(cfile,'r')
          c=cfgParser()
@@ -189,18 +192,19 @@ class Config():
          
          for s in c.sections():
             if s == 'defaults':
-               retVal = True
-               Config.active = c.get('defaults','active') or 'avision' #if (zero-length)
-               Config.offset = c.getpair('defaults','offset') or [0,0]
-               Config.res = c.getint('defaults','resolution') or 300
+               if hostnameMatch:
+                 retVal = True
+                 Config.active = c.get('defaults','active') or 'avision' #if (zero-length)
+                 Config.offset = c.getpair('defaults','offset') or [0,0]
+                 Config.res = c.getint('defaults','resolution') or 300
                  # switch here?
             else:
                Config.getConfig(c,s)
          #generate data dict based on cfg file
          if not retVal:
-            print "missing 'defaults' section"
+            print "\t(wrong hostname or no 'defaults' section)"
          else:
-            print "default found"
+            print "\t*Default found!"
          f.close()
       return retVal
 
@@ -266,7 +270,7 @@ class Config():
       customHostKey = Config.hasCustom(key)
       if not defaultLoaded:
          Config.switch(customHostKey)
-         Config.saveFile(customDir+'/default')
+         Config.saveFile(customDir+'/'+CUSTOM_NAME)
       else:
          try:
             Config.makeKey()
@@ -274,7 +278,7 @@ class Config():
             print "Error:", e, "defaulting to",key
             Config.switch(customHostKey)
          Config.setMethods()
-         print 'Loaded configuration'
+         print 'Loaded configuration files'
       Config.configModified = modification_date(customDir)
       return Config.res
 
